@@ -34,37 +34,18 @@ namespace o2
 namespace ITS
 {
 
-Tracker::Tracker(bool useGPU)
+Tracker::Tracker(o2::ITS::TrackerTraits* traits)
 {
   /// Initialise standard configuration with 1 iteration
   mTrkParams.resize(1);
   mMemParams.resize(1);
-  // This will be superseeded by the dlopen trial
-  std::string libPath = std::getenv("O2_ROOT");
-  libPath += "/lib/libITStrackingCUDA.so"; 
-  void* hGPULib = dlopen(libPath.data(), RTLD_NOW);
-  if (hGPULib != NULL && useGPU) {
-    std::cout << "CUDA library found... ";
-    void* createFunc = (void*)dlsym(hGPULib, "createTrackerTraitsNV");
-    if (createFunc != NULL) {
-      std::cout << "and correctly loaded." << std::endl;
-      mCUDA = true;
-      TrackerTraits* (*tmp)() = (TrackerTraits* (*)()) createFunc;
-      mTraits = tmp();
-    } else {
-      std::cout << "but not properly loaded." << std::endl;
-    }
-  }
-  if (!mCUDA) {
-    std::cout << "Loading the CPU version of the algorithm." << std::endl;
-    mTraits = new TrackerTraitsCPU();
-  }
+  assert(mTracks != nullptr);
+  mTraits = traits;
   mPrimaryVertexContext = mTraits->getPrimaryVertexContext();
 }
 
 Tracker::~Tracker()
 {
-  delete mTraits;
 }
 
 void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmarkOutputStream)

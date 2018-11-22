@@ -39,7 +39,7 @@ void run_trac_ca_its(std::string path = "./", std::string outputfile = "o2ca_its
 
   gSystem->Load("libITStracking.so");
 
-  o2::ITS::Tracker tracker;
+  o2::ITS::Tracker tracker(AliGPUReconstruction::CreateInstance()->GetITSTrackerTraits());
   o2::ITS::ROframe event(0);
 
   if (path.back() != '/') {

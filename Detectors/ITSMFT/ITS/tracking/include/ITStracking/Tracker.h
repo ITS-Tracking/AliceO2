@@ -46,7 +46,7 @@ class Tracker
 {
 
  public:
-  Tracker(bool useGPU = false);
+  Tracker(TrackerTraits *traits);
 
   Tracker(const Tracker&) = delete;
   Tracker& operator=(const Tracker&) = delete;
@@ -82,8 +82,8 @@ class Tracker
   template <typename... T>
   float evaluateTask(void (Tracker::*)(T...), const char*, std::ostream& ostream, T&&... args);
 
-  TrackerTraits* mTraits = nullptr;
-  PrimaryVertexContext* mPrimaryVertexContext = nullptr;
+  TrackerTraits* mTraits = nullptr; /// Observer pointer, not owned by this class
+  PrimaryVertexContext* mPrimaryVertexContext = nullptr; /// Observer pointer, not owned by this class
 
   std::vector<MemoryParameters> mMemParams;
   std::vector<TrackingParameters> mTrkParams;
