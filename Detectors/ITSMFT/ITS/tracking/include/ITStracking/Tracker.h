@@ -46,7 +46,7 @@ class Tracker
 {
 
  public:
-  Tracker(TrackerTraits *traits);
+  Tracker(TrackerTraits* traits);
 
   Tracker(const Tracker&) = delete;
   Tracker& operator=(const Tracker&) = delete;
@@ -82,7 +82,7 @@ class Tracker
   template <typename... T>
   float evaluateTask(void (Tracker::*)(T...), const char*, std::ostream& ostream, T&&... args);
 
-  TrackerTraits* mTraits = nullptr; /// Observer pointer, not owned by this class
+  TrackerTraits* mTraits = nullptr;                      /// Observer pointer, not owned by this class
   PrimaryVertexContext* mPrimaryVertexContext = nullptr; /// Observer pointer, not owned by this class
 
   std::vector<MemoryParameters> mMemParams;
@@ -129,7 +129,7 @@ inline dataformats::MCTruthContainer<MCCompLabel>& Tracker::getTrackLabels()
 
 template <typename... T>
 float Tracker::evaluateTask(void (Tracker::*task)(T...), const char* taskName, std::ostream& ostream,
-                                   T&&... args)
+                            T&&... args)
 {
   float diff{ 0.f };
 
