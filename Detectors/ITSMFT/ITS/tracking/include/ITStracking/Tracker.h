@@ -78,6 +78,7 @@ class Tracker
   void findCellsNeighbours(int& iteration);
   void findRoads(int& iteration);
   void findTracks(const ROframe& ev);
+  void keepOnlyTheBest(const ROframe& ev);
   bool fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step);
   void traverseCellsTree(const int, const int);
   void computeRoadsMClabels(const ROframe&);

@@ -52,7 +52,7 @@ void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmark
   mTracks.clear();
   mTrackLabels.clear();
 
-  for (int iVertex = 0; iVertex < verticesNum; ++iVertex) {
+  for (int iVertex = 0; iVertex < 1; ++iVertex) {
 
     float total{0.f};
 
@@ -68,6 +68,7 @@ void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmark
       total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", timeBenchmarkOutputStream, iteration);
       total += evaluateTask(&Tracker::findRoads, "Road finding", timeBenchmarkOutputStream, iteration);
       total += evaluateTask(&Tracker::findTracks, "Track finding", timeBenchmarkOutputStream, event);
+      keepOnlyTheBest(event);
     }
 
     if (constants::DoTimeBenchmarks)
@@ -211,8 +212,7 @@ void Tracker::findRoads(int& iteration)
 void Tracker::findTracks(const ROframe& event)
 {
   mTracks.reserve(mTracks.capacity() + mPrimaryVertexContext->getRoads().size());
-  std::vector<TrackITSExt> tracks;
-  tracks.reserve(mPrimaryVertexContext->getRoads().size());
+
 #ifdef CA_DEBUG
   std::array<int, 4> roadCounters{0, 0, 0, 0};
   std::array<int, 4> fitCounters{0, 0, 0, 0};
@@ -282,103 +282,10 @@ void Tracker::findTracks(const ROframe& event)
       continue;
     CA_DEBUGGER(refitCounters[nClusters - 4]++);
     temporaryTrack.setROFrame(mROFrame);
-    tracks.emplace_back(temporaryTrack);
+    mTracks.emplace_back(temporaryTrack);
     assert(nClusters == temporaryTrack.getNumberOfClusters());
   }
   //mTraits->refitTracks(event.getTrackingFrameInfo(), tracks);
-
-  std::sort(tracks.begin(), tracks.end(),
-            [](TrackITSExt& track1, TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });
-
-#ifdef CA_DEBUG
-  std::array<int, 26> sharingMatrix{0};
-  int prevNclusters = 7;
-  auto cumulativeIndex = [](int ncl) -> int {
-    constexpr int idx[5] = {0, 5, 11, 18, 26};
-    return idx[ncl - 4];
-  };
-  std::array<int, 4> xcheckCounters{0};
-#endif
-
-  for (auto& track : tracks) {
-    CA_DEBUGGER(int nClusters = 0);
-    int nShared = 0;
-    for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
-      if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
-        continue;
-      }
-      nShared += int(mPrimaryVertexContext->isClusterUsed(iLayer, track.getClusterIndex(iLayer)));
-      CA_DEBUGGER(nClusters++);
-    }
-
-#ifdef CA_DEBUG
-    assert(nClusters == track.getNumberOfClusters());
-    xcheckCounters[nClusters - 4]++;
-    assert(nShared <= nClusters);
-    sharingMatrix[cumulativeIndex(nClusters) + nShared]++;
-#endif
-
-    if (nShared > mTrkParams[0].ClusterSharing) {
-      continue;
-    }
-
-#ifdef CA_DEBUG
-    nonsharingCounters[nClusters - 4]++;
-    assert(nClusters <= prevNclusters);
-    prevNclusters = nClusters;
-#endif
-
-    for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
-      if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
-        continue;
-      }
-      mPrimaryVertexContext->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
-    }
-    mTracks.emplace_back(track);
-  }
-
-#ifdef CA_DEBUG
-  std::cout << "+++ Found candidates with 4, 5, 6 and 7 clusters:\t";
-  for (int count : roadCounters)
-    std::cout << count << "\t";
-  std::cout << std::endl;
-
-  std::cout << "+++ Fitted candidates with 4, 5, 6 and 7 clusters:\t";
-  for (int count : fitCounters)
-    std::cout << count << "\t";
-  std::cout << std::endl;
-
-  std::cout << "+++ Backprop candidates with 4, 5, 6 and 7 clusters:\t";
-  for (int count : backpropagatedCounters)
-    std::cout << count << "\t";
-  std::cout << std::endl;
-
-  std::cout << "+++ Refitted candidates with 4, 5, 6 and 7 clusters:\t";
-  for (int count : refitCounters)
-    std::cout << count << "\t";
-  std::cout << std::endl;
-
-  std::cout << "+++ Cross check counters for 4, 5, 6 and 7 clusters:\t";
-  for (size_t iCount = 0; iCount < refitCounters.size(); ++iCount) {
-    std::cout << xcheckCounters[iCount] << "\t";
-    //assert(refitCounters[iCount] == xcheckCounters[iCount]);
-  }
-  std::cout << std::endl;
-
-  std::cout << "+++ Nonsharing candidates with 4, 5, 6 and 7 clusters:\t";
-  for (int count : nonsharingCounters)
-    std::cout << count << "\t";
-  std::cout << std::endl;
-
-  std::cout << "+++ Sharing matrix:\n";
-  for (int iCl = 4; iCl <= 7; ++iCl) {
-    std::cout << "+++ ";
-    for (int iSh = cumulativeIndex(iCl); iSh < cumulativeIndex(iCl + 1); ++iSh) {
-      std::cout << sharingMatrix[iSh] << "\t";
-    }
-    std::cout << std::endl;
-  }
-#endif
 }
 
 bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step)
@@ -605,6 +512,105 @@ track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluste
                                                                               : crv / (getBz() * o2::constants::math::B2C)},
                             {s2, 0.f, s2, s2 * fy, 0.f, s2 * fy * fy, 0.f, s2 * tz, 0.f, s2 * tz * tz, s2 * cy, 0.f,
                              s2 * fy * cy, 0.f, s2 * cy * cy});
+}
+
+void Tracker::keepOnlyTheBest(const ROframe& event)
+{
+  std::vector<TrackITSExt> tracks;
+  tracks.reserve(mTracks.size());
+  std::sort(mTracks.begin(), mTracks.end(),
+            [](TrackITSExt& track1, TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });
+
+#ifdef CA_DEBUG
+  std::array<int, 26> sharingMatrix{0};
+  int prevNclusters = 7;
+  auto cumulativeIndex = [](int ncl) -> int {
+    constexpr int idx[5] = {0, 5, 11, 18, 26};
+    return idx[ncl - 4];
+  };
+  std::array<int, 4> xcheckCounters{0};
+#endif
+
+  for (auto& track : mTracks) {
+    CA_DEBUGGER(int nClusters = 0);
+    int nShared = 0;
+    for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+      if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+        continue;
+      }
+      nShared += int(mPrimaryVertexContext->isClusterUsed(iLayer, track.getClusterIndex(iLayer)));
+      CA_DEBUGGER(nClusters++);
+    }
+
+#ifdef CA_DEBUG
+    assert(nClusters == track.getNumberOfClusters());
+    xcheckCounters[nClusters - 4]++;
+    assert(nShared <= nClusters);
+    sharingMatrix[cumulativeIndex(nClusters) + nShared]++;
+#endif
+
+    if (nShared > mTrkParams[0].ClusterSharing) {
+      continue;
+    }
+
+#ifdef CA_DEBUG
+    nonsharingCounters[nClusters - 4]++;
+    assert(nClusters <= prevNclusters);
+    prevNclusters = nClusters;
+#endif
+
+    for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+      if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+        continue;
+      }
+      mPrimaryVertexContext->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
+    }
+    tracks.emplace_back(track);
+  }
+  mTracks.swap(tracks);
+
+#ifdef CA_DEBUG
+  std::cout << "+++ Found candidates with 4, 5, 6 and 7 clusters:\t";
+  for (int count : roadCounters)
+    std::cout << count << "\t";
+  std::cout << std::endl;
+
+  std::cout << "+++ Fitted candidates with 4, 5, 6 and 7 clusters:\t";
+  for (int count : fitCounters)
+    std::cout << count << "\t";
+  std::cout << std::endl;
+
+  std::cout << "+++ Backprop candidates with 4, 5, 6 and 7 clusters:\t";
+  for (int count : backpropagatedCounters)
+    std::cout << count << "\t";
+  std::cout << std::endl;
+
+  std::cout << "+++ Refitted candidates with 4, 5, 6 and 7 clusters:\t";
+  for (int count : refitCounters)
+    std::cout << count << "\t";
+  std::cout << std::endl;
+
+  std::cout << "+++ Cross check counters for 4, 5, 6 and 7 clusters:\t";
+  for (size_t iCount = 0; iCount < refitCounters.size(); ++iCount) {
+    std::cout << xcheckCounters[iCount] << "\t";
+    //assert(refitCounters[iCount] == xcheckCounters[iCount]);
+  }
+  std::cout << std::endl;
+
+  std::cout << "+++ Nonsharing candidates with 4, 5, 6 and 7 clusters:\t";
+  for (int count : nonsharingCounters)
+    std::cout << count << "\t";
+  std::cout << std::endl;
+
+  std::cout << "+++ Sharing matrix:\n";
+  for (int iCl = 4; iCl <= 7; ++iCl) {
+    std::cout << "+++ ";
+    for (int iSh = cumulativeIndex(iCl); iSh < cumulativeIndex(iCl + 1); ++iSh) {
+      std::cout << sharingMatrix[iSh] << "\t";
+    }
+    std::cout << std::endl;
+  }
+#endif
 }
 
 } // namespace its
