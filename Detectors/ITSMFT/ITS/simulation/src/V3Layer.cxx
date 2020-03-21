@@ -474,7 +474,7 @@ TGeoVolume* V3Layer::createStave(const TGeoManager* /*mgr*/)
     mHierarchy[kHalfStave] = 1;
 
     // Mechanical stave structure
-    mechStaveVol = createStaveStructInnerB();
+//    mechStaveVol = createStaveStructInnerB();
     if (mechStaveVol) {
       ypos = (static_cast<TGeoBBox*>(modVol->GetShape()))->GetDY() - ypos;
       if (mStaveModel != Detector::kIBModel4)

@@ -152,6 +152,7 @@ Detector::Detector(Bool_t active)
     mMomentumStart(),
     mEnergyLoss(),
     */
+    mNumberOfInnerLayers(sNumberInnerLayers),
     mNumberOfDetectors(-1),
     mModifyGeometry(kFALSE),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
@@ -159,12 +160,66 @@ Detector::Detector(Bool_t active)
     mStaveModelOuterBarrel(kOBModel0)
 {
 
+  mTotalNumberOfLayers = mNumberOfInnerLayers + (sNumberLayers - sNumberInnerLayers);
+
+  createAllArrays();
+
   for (Int_t j = 0; j < sNumberLayers; j++) {
     mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
   }
 
   if (sNumberLayers > 0) { // if not, we'll Fatal-ize in CreateGeometry
     for (Int_t j = 0; j < sNumberLayers; j++) {
+      mLayerPhi0[j] = 0;
+      mLayerRadii[j] = 0.;
+      mStavePerLayer[j] = 0;
+      mUnitPerStave[j] = 0;
+      mChipThickness[j] = 0.;
+      mStaveWidth[j] = 0.;
+      mStaveTilt[j] = 0.;
+      mDetectorThickness[j] = 0.;
+      mChipTypeID[j] = 0;
+      mBuildLevel[j] = 0;
+      mGeometry[j] = nullptr;
+    }
+  }
+  mServicesGeometry = nullptr;
+
+  for (int i = sNumberOfWrapperVolumes; i--;) {
+    mWrapperMinRadius[i] = mWrapperMaxRadius[i] = mWrapperZSpan[i] = -1;
+  }
+
+  configITS(this);
+}
+
+Detector::Detector(Bool_t active, Int_t nLay)
+  : o2::base::DetImpl<Detector>("ITS", active),
+    mTrackData(),
+    /*
+    mHitStarted(false),
+    mTrkStatusStart(),
+    mPositionStart(),
+    mMomentumStart(),
+    mEnergyLoss(),
+    */
+    mNumberOfInnerLayers(nLay),
+    mNumberOfDetectors(-1),
+    mModifyGeometry(kFALSE),
+    mHits(o2::utils::createSimVector<o2::itsmft::Hit>()),
+    mStaveModelInnerBarrel(kIBModel0),
+    mStaveModelOuterBarrel(kOBModel0)
+{
+
+  mTotalNumberOfLayers = mNumberOfInnerLayers + (sNumberLayers - sNumberInnerLayers);
+
+  createAllArrays();
+
+  for (Int_t j = 0; j < mTotalNumberOfLayers; j++) {
+    mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
+  }
+
+  if (mTotalNumberOfLayers > 0) { // if not, we'll Fatal-ize in CreateGeometry
+    for (Int_t j = 0; j < mTotalNumberOfLayers; j++) {
       mLayerPhi0[j] = 0;
       mLayerRadii[j] = 0.;
       mStavePerLayer[j] = 0;
@@ -197,6 +252,7 @@ Detector::Detector(const Detector& rhs)
     mMomentumStart(),
     mEnergyLoss(),
     */
+    mNumberOfInnerLayers(rhs.mNumberOfInnerLayers),
     mNumberOfDetectors(rhs.mNumberOfDetectors),
     mModifyGeometry(rhs.mModifyGeometry),
 
@@ -206,7 +262,7 @@ Detector::Detector(const Detector& rhs)
     mStaveModelOuterBarrel(rhs.mStaveModelOuterBarrel)
 {
 
-  for (Int_t j = 0; j < sNumberLayers; j++) {
+  for (Int_t j = 0; j < mTotalNumberOfLayers; j++) {
     mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
   }
 }
@@ -247,11 +303,39 @@ Detector& Detector::operator=(const Detector& rhs)
   mStaveModelInnerBarrel = rhs.mStaveModelInnerBarrel;
   mStaveModelOuterBarrel = rhs.mStaveModelOuterBarrel;
 
-  for (Int_t j = 0; j < sNumberLayers; j++) {
+  for (Int_t j = 0; j < mTotalNumberOfLayers; j++) {
     mLayerName[j].Form("%s%d", GeometryTGeo::getITSSensorPattern(), j); // See V3Layer
   }
 
   return *this;
+}
+
+void Detector::createAllArrays()
+{
+  // Create all arrays
+  // We have to do it here because now the number of Inner Layers is
+  // not fixed, so we don't know in advance how many to create: they
+  // cannot be anymore static arrays as in the default version
+  // M.S. 21 mar 2020 (13th day of Italian Coronavirus lockdown)
+
+  mLayerID = new Int_t[mTotalNumberOfLayers];
+  mLayerName = new TString[mTotalNumberOfLayers];
+
+  mWrapperLayerId = new Int_t[mTotalNumberOfLayers];
+  mTurboLayer = new Bool_t[mTotalNumberOfLayers];
+
+  mLayerPhi0 = new Double_t[mTotalNumberOfLayers];
+  mLayerRadii = new Double_t[mTotalNumberOfLayers];
+  mStavePerLayer = new Int_t[mTotalNumberOfLayers];
+  mUnitPerStave = new Int_t[mTotalNumberOfLayers];
+  mChipThickness = new Double_t[mTotalNumberOfLayers];
+  mStaveWidth = new Double_t[mTotalNumberOfLayers];
+  mStaveTilt = new Double_t[mTotalNumberOfLayers];
+  mDetectorThickness = new Double_t[mTotalNumberOfLayers];
+  mChipTypeID = new UInt_t[mTotalNumberOfLayers];
+  mBuildLevel = new Int_t[mTotalNumberOfLayers];
+
+  mGeometry = new V3Layer*[mTotalNumberOfLayers];
 }
 
 void Detector::InitializeO2Detector()
@@ -259,7 +343,7 @@ void Detector::InitializeO2Detector()
   // Define the list of sensitive volumes
   defineSensitiveVolumes();
 
-  for (int i = 0; i < sNumberLayers; i++) {
+  for (int i = 0; i < mTotalNumberOfLayers; i++) {
     mLayerID[i] = gMC ? TVirtualMC::GetMC()->VolId(mLayerName[i]) : 0;
   }
 
@@ -279,7 +363,7 @@ Bool_t Detector::ProcessHits(FairVolume* vol)
 
   // FIXME: Determine the layer number. Is this information available directly from the FairVolume?
   bool notSens = false;
-  while ((lay < sNumberLayers) && (notSens = (volID != mLayerID[lay]))) {
+  while ((lay < mTotalNumberOfLayers) && (notSens = (volID != mLayerID[lay]))) {
     ++lay;
   }
   if (notSens)
@@ -596,7 +680,7 @@ void Detector::defineLayer(Int_t nlay, double phi0, Double_t r, Int_t nstav, Int
   LOG(INFO) << "L# " << nlay << " Phi:" << phi0 << " R:" << r << " Nst:" << nstav << " Nunit:" << nunit
             << " Lthick:" << lthick << " Dthick:" << dthick << " DetID:" << dettypeID << " B:" << buildLevel;
 
-  if (nlay >= sNumberLayers || nlay < 0) {
+  if (nlay >= mTotalNumberOfLayers || nlay < 0) {
     LOG(ERROR) << "Wrong layer number " << nlay;
     return;
   }
@@ -639,7 +723,7 @@ void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Int_t nst
             << " W:" << width << " Tilt:" << tilt << " Lthick:" << lthick << " Dthick:" << dthick
             << " DetID:" << dettypeID << " B:" << buildLevel;
 
-  if (nlay >= sNumberLayers || nlay < 0) {
+  if (nlay >= mTotalNumberOfLayers || nlay < 0) {
     LOG(ERROR) << "Wrong layer number " << nlay;
     return;
   }
@@ -677,7 +761,7 @@ void Detector::getLayerParameters(Int_t nlay, Double_t& phi0, Double_t& r, Int_t
   // Return:
   //   none.
 
-  if (nlay >= sNumberLayers || nlay < 0) {
+  if (nlay >= mTotalNumberOfLayers || nlay < 0) {
     LOG(ERROR) << "Wrong layer number " << nlay;
     return;
   }
@@ -789,7 +873,7 @@ void Detector::constructDetectorGeometry()
   vITSV->SetTitle(vstrng);
 
   // Check that we have all needed parameters
-  for (Int_t j = 0; j < sNumberLayers; j++) {
+  for (Int_t j = 0; j < mTotalNumberOfLayers; j++) {
     if (mLayerRadii[j] <= 0) {
       LOG(FATAL) << "Wrong layer radius for layer " << j << "(" << mLayerRadii[j] << ")";
     }
@@ -882,7 +966,7 @@ void Detector::constructDetectorGeometry()
   // Finally create the services
   mServicesGeometry = new V3Services();
 
-  createInnerBarrelServices(wrapVols[0]);
+//  createInnerBarrelServices(wrapVols[0]);
   createMiddlBarrelServices(wrapVols[1]);
   createOuterBarrelServices(wrapVols[2]);
   createOuterBarrelSupports(vITSV);
@@ -1055,7 +1139,7 @@ void Detector::addAlignableVolumes() const
     LOG(FATAL) << "Unable to set alignable entry ! " << sname << " : " << path;
 
   Int_t lastUID = 0;
-  for (Int_t lr = 0; lr < sNumberLayers; lr++)
+  for (Int_t lr = 0; lr < mTotalNumberOfLayers; lr++)
     addAlignableVolumesLayer(lr, path, lastUID);
 
   return;
@@ -1196,7 +1280,7 @@ void Detector::defineSensitiveVolumes()
   TString volumeName;
 
   // The names of the ITS sensitive volumes have the format: ITSUSensor(0...sNumberLayers-1)
-  for (Int_t j = 0; j < sNumberLayers; j++) {
+  for (Int_t j = 0; j < mTotalNumberOfLayers; j++) {
     volumeName = GeometryTGeo::getITSSensorPattern() + TString::Itoa(j, 10);
     v = geoManager->GetVolume(volumeName.Data());
     AddSensitiveVolume(v);

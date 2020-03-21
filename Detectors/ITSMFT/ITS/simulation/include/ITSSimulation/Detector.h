@@ -88,6 +88,9 @@ class Detector : public o2::base::DetImpl<Detector>
   ///         kFALSE for inactive detectors
   Detector(Bool_t active);
 
+  /// Special version for ITS3: add number on Inner Layers
+  Detector(Bool_t active, Int_t nlay);
+
   /// Default constructor
   Detector();
 
@@ -252,8 +255,8 @@ class Detector : public o2::base::DetImpl<Detector>
   GeometryTGeo* mGeometryTGeo; //! access to geometry details
 
  protected:
-  Int_t mLayerID[sNumberLayers];     //! [sNumberLayers] layer identifier
-  TString mLayerName[sNumberLayers]; //! [sNumberLayers] layer identifier
+  Int_t *mLayerID;                   //! [sNumberLayers] layer identifier
+  TString *mLayerName;               //! [sNumberLayers] layer identifier
 
  private:
   /// this is transient data about track passing the sensor
@@ -265,6 +268,9 @@ class Detector : public o2::base::DetImpl<Detector>
     double mEnergyLoss;            //! energy loss
   } mTrackData;                    //!
 
+  Int_t mNumberOfInnerLayers;      //! number of ITS3 inner layers
+  Int_t mTotalNumberOfLayers;      //! total number of ITS3 layers (IB+OB)
+
   Int_t mNumberOfDetectors;
 
   Bool_t mModifyGeometry;
@@ -272,22 +278,25 @@ class Detector : public o2::base::DetImpl<Detector>
   Double_t mWrapperMinRadius[sNumberOfWrapperVolumes]; //! Min radius of wrapper volume
   Double_t mWrapperMaxRadius[sNumberOfWrapperVolumes]; //! Max radius of wrapper volume
   Double_t mWrapperZSpan[sNumberOfWrapperVolumes];     //! Z span of wrapper volume
-  Int_t mWrapperLayerId[sNumberLayers];                //! Id of wrapper layer to which layer belongs (-1 if not wrapped)
+  Int_t *mWrapperLayerId;                     //! Id of wrapper layer to which layer belongs (-1 if not wrapped)
 
-  Bool_t mTurboLayer[sNumberLayers];          //! True for "turbo" layers
-  Double_t mLayerPhi0[sNumberLayers];         //! Vector of layer's 1st stave phi in lab
-  Double_t mLayerRadii[sNumberLayers];        //! Vector of layer radii
-  Int_t mStavePerLayer[sNumberLayers];        //! Vector of number of staves per layer
-  Int_t mUnitPerStave[sNumberLayers];         //! Vector of number of "units" per stave
-  Double_t mChipThickness[sNumberLayers];     //! Vector of chip thicknesses
-  Double_t mStaveWidth[sNumberLayers];        //! Vector of stave width (only used for turbo)
-  Double_t mStaveTilt[sNumberLayers];         //! Vector of stave tilt (only used for turbo)
-  Double_t mDetectorThickness[sNumberLayers]; //! Vector of detector thicknesses
-  UInt_t mChipTypeID[sNumberLayers];          //! Vector of detector type id
-  Int_t mBuildLevel[sNumberLayers];           //! Vector of Material Budget Studies
+  Bool_t *mTurboLayer;                        //! True for "turbo" layers
+  Double_t *mLayerPhi0;                       //! Vector of layer's 1st stave phi in lab
+  Double_t *mLayerRadii;                      //! Vector of layer radii
+  Int_t *mStavePerLayer;                      //! Vector of number of staves per layer
+  Int_t *mUnitPerStave;                       //! Vector of number of "units" per stave
+  Double_t *mChipThickness;                   //! Vector of chip thicknesses
+  Double_t *mStaveWidth;                      //! Vector of stave width (only used for turbo)
+  Double_t *mStaveTilt;                       //! Vector of stave tilt (only used for turbo)
+  Double_t *mDetectorThickness;               //! Vector of detector thicknesses
+  UInt_t *mChipTypeID;                        //! Vector of detector type id
+  Int_t *mBuildLevel;                         //! Vector of Material Budget Studies
 
   /// Container for hit data
   std::vector<o2::itsmft::Hit>* mHits;
+
+  /// Creates all needed arrays
+  void createAllArrays();
 
   /// Creates an air-filled wrapper cylindrical volume
   TGeoVolume* createWrapperVolume(const Int_t nLay);
@@ -323,7 +332,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Model mStaveModelInnerBarrel;      //! The stave model for the Inner Barrel
   Model mStaveModelOuterBarrel;      //! The stave model for the Outer Barrel
-  V3Layer* mGeometry[sNumberLayers]; //! Geometry
+  V3Layer** mGeometry;               //! Geometry
   V3Services* mServicesGeometry;     //! Services Geometry
 
   template <typename Det>
