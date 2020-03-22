@@ -77,7 +77,8 @@ static double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
   return TMath::ASin((rMax * rMax - rMin * rMin) / (2 * rMid * sensW)) * TMath::RadToDeg();
 }
 
-static void configITS(Detector* its)
+// We need this as a method to access members
+void Detector::configITS(Detector* its)
 {
   // build ITS upgrade detector
   const int kNLr = 7;
@@ -112,7 +113,7 @@ static void configITS(Detector* its)
   double dzLr, rLr, phi0, turbo;
   int nStaveLr, nModPerStaveLr;
 
-  its->setStaveModelIB(o2::its::Detector::kIBModel4);
+//  its->setStaveModelIB(o2::its::Detector::kIBModel4);
   its->setStaveModelOB(o2::its::Detector::kOBModel2);
 
   const int kNWrapVol = 3;
@@ -124,21 +125,24 @@ static void configITS(Detector* its)
     its->defineWrapperVolume(iw, wrpRMin[iw], wrpRMax[iw], wrpZSpan[iw]);
   }
 
-  for (int idLr = 0; idLr < kNLr; idLr++) {
-    rLr = tdr5dat[idLr][kRmd];
-    phi0 = tdr5dat[idLr][kPhi0];
+//  for (int idLr = 0; idLr < kNLr; idLr++) {
+  // Build OB only (4 layers)
+  for (int idLr = mNumberOfInnerLayers; idLr < mTotalNumberOfLayers; idLr++) {
+    int im = idLr - mNumberOfInnerLayers + kNLrInner;
+    rLr = tdr5dat[im][kRmd];
+    phi0 = tdr5dat[im][kPhi0];
 
-    nStaveLr = TMath::Nint(tdr5dat[idLr][kNStave]);
-    nModPerStaveLr = TMath::Nint(tdr5dat[idLr][kNModPerStave]);
+    nStaveLr = TMath::Nint(tdr5dat[im][kNStave]);
+    nModPerStaveLr = TMath::Nint(tdr5dat[im][kNModPerStave]);
     int nChipsPerStaveLr = nModPerStaveLr;
-    if (idLr >= kNLrInner) {
+//    if (idLr >= kNLrInner) {
       its->defineLayer(idLr, phi0, rLr, nStaveLr, nModPerStaveLr, ChipThicknessOB, Segmentation::SensorLayerThickness,
                        kSensTypeID, kBuildLevel);
-    } else {
-      turbo = radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], Segmentation::SensorSizeRows);
-      its->defineLayerTurbo(idLr, phi0, rLr, nStaveLr, nChipsPerStaveLr, Segmentation::SensorSizeRows, turbo,
-                            ChipThicknessIB, Segmentation::SensorLayerThickness, kSensTypeID, kBuildLevel);
-    }
+//    } else {
+//      turbo = radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], Segmentation::SensorSizeRows);
+//      its->defineLayerTurbo(idLr, phi0, rLr, nStaveLr, nChipsPerStaveLr, Segmentation::SensorSizeRows, turbo,
+//                            ChipThicknessIB, Segmentation::SensorLayerThickness, kSensTypeID, kBuildLevel);
+//    }
   }
 }
 
@@ -170,6 +174,7 @@ Detector::Detector(Bool_t active)
 
   if (sNumberLayers > 0) { // if not, we'll Fatal-ize in CreateGeometry
     for (Int_t j = 0; j < sNumberLayers; j++) {
+      mITS3Layer[j] = kFALSE;
       mLayerPhi0[j] = 0;
       mLayerRadii[j] = 0.;
       mStavePerLayer[j] = 0;
@@ -220,6 +225,7 @@ Detector::Detector(Bool_t active, Int_t nLay)
 
   if (mTotalNumberOfLayers > 0) { // if not, we'll Fatal-ize in CreateGeometry
     for (Int_t j = 0; j < mTotalNumberOfLayers; j++) {
+      mITS3Layer[j] = kFALSE;
       mLayerPhi0[j] = 0;
       mLayerRadii[j] = 0.;
       mStavePerLayer[j] = 0;
@@ -323,6 +329,7 @@ void Detector::createAllArrays()
 
   mWrapperLayerId = new Int_t[mTotalNumberOfLayers];
   mTurboLayer = new Bool_t[mTotalNumberOfLayers];
+  mITS3Layer = new Bool_t[mTotalNumberOfLayers];
 
   mLayerPhi0 = new Double_t[mTotalNumberOfLayers];
   mLayerRadii = new Double_t[mTotalNumberOfLayers];

@@ -281,6 +281,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Int_t *mWrapperLayerId;                     //! Id of wrapper layer to which layer belongs (-1 if not wrapped)
 
   Bool_t *mTurboLayer;                        //! True for "turbo" layers
+  Bool_t *mITS3Layer;                         //! True for new ITS3 layers
   Double_t *mLayerPhi0;                       //! Vector of layer's 1st stave phi in lab
   Double_t *mLayerRadii;                      //! Vector of layer radii
   Int_t *mStavePerLayer;                      //! Vector of number of staves per layer
@@ -294,6 +295,9 @@ class Detector : public o2::base::DetImpl<Detector>
 
   /// Container for hit data
   std::vector<o2::itsmft::Hit>* mHits;
+
+  /// We need this as a method to access members
+  void configITS(Detector* its);
 
   /// Creates all needed arrays
   void createAllArrays();
