@@ -177,6 +177,7 @@ Detector::Detector(Bool_t active)
       mITS3Layer[j] = kFALSE;
       mLayerPhi0[j] = 0;
       mLayerRadii[j] = 0.;
+      mLayerZLen[j] = 0.;
       mStavePerLayer[j] = 0;
       mUnitPerStave[j] = 0;
       mChipThickness[j] = 0.;
@@ -228,6 +229,7 @@ Detector::Detector(Bool_t active, Int_t nLay)
       mITS3Layer[j] = kFALSE;
       mLayerPhi0[j] = 0;
       mLayerRadii[j] = 0.;
+      mLayerZLen[j] = 0.;
       mStavePerLayer[j] = 0;
       mUnitPerStave[j] = 0;
       mChipThickness[j] = 0.;
@@ -333,6 +335,7 @@ void Detector::createAllArrays()
 
   mLayerPhi0 = new Double_t[mTotalNumberOfLayers];
   mLayerRadii = new Double_t[mTotalNumberOfLayers];
+  mLayerZLen = new Double_t[mTotalNumberOfLayers];
   mStavePerLayer = new Int_t[mTotalNumberOfLayers];
   mUnitPerStave = new Int_t[mTotalNumberOfLayers];
   mChipThickness = new Double_t[mTotalNumberOfLayers];
@@ -748,6 +751,39 @@ void Detector::defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Int_t nst
   mBuildLevel[nlay] = buildLevel;
 }
 
+void Detector::defineInnerLayerITS3(Int_t nlay, Double_t r, Double_t zlen,
+                           Double_t dthick, UInt_t dettypeID, Int_t buildLevel)
+{
+  //     Sets the layer parameters
+  // Inputs:
+  //          nlay    layer number
+  //          r       layer radius
+  //          zlen    layer length
+  //          dthick  detector thickness (if omitted, defaults to 0)
+  //          dettypeID  ??
+  //          buildLevel (if 0, all geometry is build, used for material budget studies)
+  // Outputs:
+  //   none.
+  // Return:
+  //   none.
+
+  LOG(INFO) << "L# " << nlay << " with ITS3 geo R:" << r 
+            << " Dthick:" << dthick << " DetID:" << dettypeID << " B:" << buildLevel;
+
+  if (nlay >= mTotalNumberOfLayers || nlay < 0) {
+    LOG(ERROR) << "Wrong layer number " << nlay;
+    return;
+  }
+
+  mTurboLayer[nlay] = kFALSE;
+  mITS3Layer[nlay] = kTRUE;
+  mLayerRadii[nlay] = r;
+  mLayerZLen[nlay] = zlen;
+  mDetectorThickness[nlay] = dthick;
+  mChipTypeID[nlay] = dettypeID;
+  mBuildLevel[nlay] = buildLevel;
+}
+
 void Detector::getLayerParameters(Int_t nlay, Double_t& phi0, Double_t& r, Int_t& nstav, Int_t& nmod, Double_t& width,
                                   Double_t& tilt, Double_t& lthick, Double_t& dthick, UInt_t& dettype) const
 {
@@ -884,13 +920,13 @@ void Detector::constructDetectorGeometry()
     if (mLayerRadii[j] <= 0) {
       LOG(FATAL) << "Wrong layer radius for layer " << j << "(" << mLayerRadii[j] << ")";
     }
-    if (mStavePerLayer[j] <= 0) {
+    if (mStavePerLayer[j] <= 0 && !mITS3Layer[j]) {
       LOG(FATAL) << "Wrong number of staves for layer " << j << "(" << mStavePerLayer[j] << ")";
     }
-    if (mUnitPerStave[j] <= 0) {
+    if (mUnitPerStave[j] <= 0 && !mITS3Layer[j]) {
       LOG(FATAL) << "Wrong number of chips for layer " << j << "(" << mUnitPerStave[j] << ")";
     }
-    if (mChipThickness[j] < 0) {
+    if (mChipThickness[j] < 0 && !mITS3Layer[j]) {
       LOG(FATAL) << "Wrong chip thickness for layer " << j << "(" << mChipThickness[j] << ")";
     }
     if (mTurboLayer[j] && mStaveWidth[j] <= 0) {
@@ -907,7 +943,7 @@ void Detector::constructDetectorGeometry()
       }
     }
 
-    if (mChipThickness[j] == 0) {
+    if (mChipThickness[j] == 0 && !mITS3Layer[j]) {
       LOG(INFO) << "Chip thickness for layer " << j << " not set, using default";
     }
   }
@@ -924,7 +960,7 @@ void Detector::constructDetectorGeometry()
   }
 
   // Now create the actual geometry
-  for (Int_t j = 0; j < sNumberLayers; j++) {
+  for (Int_t j = 0; j < mTotalNumberOfLayers; j++) {
     TGeoVolume* dest = vITSV;
     mWrapperLayerId[j] = -1;
 
@@ -934,6 +970,11 @@ void Detector::constructDetectorGeometry()
       mGeometry[j]->setStaveTilt(mStaveTilt[j]);
     } else {
       mGeometry[j] = new V3Layer(j, kFALSE);
+    }
+
+    if (mITS3Layer[j]) {
+      mGeometry[j]->setIsITS3(kTRUE);
+      mGeometry[j]->setIBModuleZLength(mLayerZLen[j]);
     }
 
     mGeometry[j]->setPhi0(mLayerPhi0[j]);

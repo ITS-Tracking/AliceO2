@@ -266,6 +266,7 @@ V3Layer::V3Layer()
     mNumberOfChips(0),
     mChipTypeID(0),
     mIsTurbo(0),
+    mIsITS3(0),
     mBuildLevel(0),
     mStaveModel(Detector::kIBModelDummy),
     mAddGammaConv(kFALSE),
@@ -293,6 +294,7 @@ V3Layer::V3Layer(Int_t lay, Bool_t turbo, Int_t debug)
     mNumberOfChips(0),
     mChipTypeID(0),
     mIsTurbo(turbo),
+    mIsITS3(0),
     mBuildLevel(0),
     mStaveModel(Detector::kIBModelDummy),
     mAddGammaConv(kFALSE),
@@ -319,7 +321,7 @@ void V3Layer::createLayer(TGeoVolume* motherVolume)
   if (mLayerRadius <= 0) {
     LOG(FATAL) << "Wrong layer radius " << mLayerRadius;
   }
-
+/*  // These checks would fail with new ITS3 geo, let's trust the user here :)
   if (mNumberOfStaves <= 0) {
     LOG(FATAL) << "Wrong number of staves " << mNumberOfStaves;
   }
@@ -343,10 +345,16 @@ void V3Layer::createLayer(TGeoVolume* motherVolume)
   if (mSensorThickness > mChipThickness) {
     LOG(FATAL) << "Sensor thickness " << mSensorThickness << " is greater than chip thickness " << mChipThickness;
   }
-
+*/
   // If a Turbo layer is requested, do it and exit
   if (mIsTurbo) {
     createLayerTurbo(motherVolume);
+    return;
+  }
+
+  // If a new ITS3 layer is requested, do it and exit
+  if (mIsITS3) {
+    createITS3Layer(motherVolume);
     return;
   }
 
@@ -422,6 +430,66 @@ void V3Layer::createLayerTurbo(TGeoVolume* motherVolume)
 
   // Finally put everything in the mother volume
   motherVolume->AddNode(layerVolume, 1, nullptr);
+
+  return;
+}
+
+void V3Layer::createITS3Layer(TGeoVolume* motherVolume, const TGeoManager* mgr)
+{
+
+  Double_t rmin = mLayerRadius;
+  Double_t rmax = rmin + mSensorThickness;
+
+  const Int_t nameLen = 30;
+  char chipName[nameLen], sensName[nameLen], moduleName[nameLen],
+    hsName[nameLen], staveName[nameLen], layerName[nameLen];
+
+  snprintf(sensName, nameLen, "%s%d", GeometryTGeo::getITSSensorPattern(), mLayerNumber);
+  snprintf(chipName, nameLen, "%s%d", GeometryTGeo::getITSChipPattern(), mLayerNumber);
+  snprintf(moduleName, nameLen, "%s%d", GeometryTGeo::getITSModulePattern(), mLayerNumber);
+  snprintf(hsName, nameLen, "%s%d", GeometryTGeo::getITSHalfStavePattern(), mLayerNumber);
+  snprintf(staveName, nameLen, "%s%d", GeometryTGeo::getITSStavePattern(), mLayerNumber);
+  snprintf(layerName, nameLen, "%s%d", GeometryTGeo::getITSLayerPattern(), mLayerNumber);
+
+  TGeoTube* sensor = new TGeoTube(rmin, rmax, mIBModuleZLength / 2);
+  TGeoTube* chip = new TGeoTube(rmin, rmax, mIBModuleZLength / 2);
+  TGeoTube* module = new TGeoTube(rmin, rmax, mIBModuleZLength / 2);
+  TGeoTube* hstave = new TGeoTube(rmin, rmax, mIBModuleZLength / 2);
+  TGeoTube* stave = new TGeoTube(rmin, rmax, mIBModuleZLength / 2);
+  TGeoTube* layer = new TGeoTube(rmin, rmax, mIBModuleZLength / 2);
+
+  TGeoMedium* medSi = mgr->GetMedium("SI$");
+  TGeoMedium* medAir = mgr->GetMedium("AIR$");
+
+  TGeoVolume* sensVol = new TGeoVolume(sensName, sensor, medSi);
+  TGeoVolume* chipVol = new TGeoVolume(chipName, chip, medAir);
+  TGeoVolume* modVol = new TGeoVolume(moduleName, hstave, medAir);
+  TGeoVolume* hstaveVol = new TGeoVolume(hsName, hstave, medAir);
+  TGeoVolume* staveVol = new TGeoVolume(staveName, stave, medAir);
+  TGeoVolume* layerVol = new TGeoVolume(layerName, layer, medAir);
+
+  LOG(INFO) << "Inserting " << sensVol->GetName() << " inside " << chipVol->GetName();
+  chipVol->AddNode(sensVol, 1, nullptr);
+
+  LOG(INFO) << "Inserting " << chipVol->GetName() << " inside " << modVol->GetName();
+  modVol->AddNode(chipVol, 0, nullptr);
+  mHierarchy[kChip] = 1;
+
+  LOG(INFO) << "Inserting " << modVol->GetName() << " inside " << hstaveVol->GetName();
+  hstaveVol->AddNode(modVol, 0, nullptr);
+  mHierarchy[kModule] = 1;
+
+  LOG(INFO) << "Inserting " << hstaveVol->GetName() << " inside " << staveVol->GetName();
+  staveVol->AddNode(hstaveVol, 0, nullptr);
+  mHierarchy[kHalfStave] = 1;
+
+  LOG(INFO) << "Inserting " << staveVol->GetName() << " inside " << layerVol->GetName();
+  layerVol->AddNode(staveVol, 0, nullptr);
+  mHierarchy[kStave] = 1;
+
+  // Finally put everything in the mother volume
+  LOG(INFO) << "Inserting " << layerVol->GetName() << " inside " << motherVolume->GetName();
+  motherVolume->AddNode(layerVol, 1, nullptr);
 
   return;
 }

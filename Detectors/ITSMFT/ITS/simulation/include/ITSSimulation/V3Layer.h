@@ -64,6 +64,8 @@ class V3Layer : public V11Geometry
 
   Bool_t isTurbo() const { return mIsTurbo; };
 
+  Bool_t isITS3() const { return mIsITS3; };
+
   Double_t getChipThick() const { return mChipThickness; };
 
   Double_t getStaveTilt() const { return mStaveTilt; };
@@ -105,6 +107,12 @@ class V3Layer : public V11Geometry
 
   /// Gets the Gamma Conversion Rod X position
   Double_t getGammaConversionRodXPos();
+
+  /// Sets whether this is a new ITS3 layer
+  void setIsITS3(const Bool_t its3) { mIsITS3 = its3; };
+
+  /// Sets Module Z length (valid only for new ITS3 layer)
+  void setIBModuleZLength(const Double_t z) { mIBModuleZLength = z; };
 
   /// Sets the Stave tilt angle (for turbo layers only)
   /// \param t The stave tilt angle
@@ -150,6 +158,11 @@ class V3Layer : public V11Geometry
   /// to avoid volume overlaps
   /// \param motherVolume The TGeoVolume owing the volume structure
   void createLayerTurbo(TGeoVolume* motherVolume);
+
+  /// Creates a new ITS3 Layer and places inside its mother volume
+  /// \param motherVolume The TGeoVolume owing the volume structure
+  /// \param mgr The GeoManager (used only to get the proper material)
+  void createITS3Layer(TGeoVolume* motherVolume, const TGeoManager* mgr = gGeoManager);
 
   /// Computes the inner radius of the air container for the Turbo configuration
   /// as the radius of either the circle tangent to the stave or the circle
@@ -322,6 +335,7 @@ class V3Layer : public V11Geometry
 
   UInt_t mChipTypeID; ///< detector type id
   Bool_t mIsTurbo;    ///< True if this layer is a "turbo" layer
+  Bool_t mIsITS3;     ///< True if this layer is a new ITS3 layer
   Int_t mBuildLevel;  ///< Used for material studies
 
   Detector::Model mStaveModel; ///< The stave model

@@ -159,6 +159,16 @@ class Detector : public o2::base::DetImpl<Detector>
   void defineLayerTurbo(Int_t nlay, Double_t phi0, Double_t r, Int_t nladd, Int_t nmod, Double_t width, Double_t tilt,
                         Double_t lthick = 0., Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0) override;
 
+  /// Sets the layer parameters for new ITS3 geo
+  /// \param nlay layer number
+  /// \param r layer radius
+  /// \param zlen layer length
+  /// \param dthick detector thickness (if omitted, defaults to 0)
+  /// \param dettypeID ??
+  /// \param buildLevel (if 0, all geometry is build, used for material budget studies)
+  void defineInnerLayerITS3(Int_t nlay, Double_t r, Double_t zlen,
+                            Double_t dthick = 0., UInt_t detType = 0, Int_t buildFlag = 0);
+
   /// Gets the layer parameters
   /// \param nlay layer number
   /// \param phi0 phi of 1st stave
@@ -284,6 +294,7 @@ class Detector : public o2::base::DetImpl<Detector>
   Bool_t *mITS3Layer;                         //! True for new ITS3 layers
   Double_t *mLayerPhi0;                       //! Vector of layer's 1st stave phi in lab
   Double_t *mLayerRadii;                      //! Vector of layer radii
+  Double_t *mLayerZLen;                       //! Vector of layer lengths
   Int_t *mStavePerLayer;                      //! Vector of number of staves per layer
   Int_t *mUnitPerStave;                       //! Vector of number of "units" per stave
   Double_t *mChipThickness;                   //! Vector of chip thicknesses

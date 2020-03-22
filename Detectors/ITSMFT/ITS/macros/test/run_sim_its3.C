@@ -122,6 +122,8 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
   static constexpr float SensorLayerThickness = 30.e-4;
   static constexpr float SensorSizeRows = ActiveMatrixSizeRows + PassiveEdgeTop + PassiveEdgeReadOut;
 
+  static constexpr float its3Zlength = 30.0;
+
   o2::its::Detector* its = new o2::its::Detector(kTRUE, kNLrInner);
 
   its->setStaveModelIB(o2::its::Detector::kIBModel4);
@@ -134,9 +136,11 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
     int nModPerStaveLr = TMath::Nint(tdr5dat[idLr][kNModPerStave]);
     int nChipsPerStaveLr = nModPerStaveLr;
 
-    double turbo = radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], SensorSizeRows);
-    its->defineLayerTurbo(idLr, phi0, rLr, nStaveLr, nChipsPerStaveLr, SensorSizeRows, turbo,
-                          ChipThicknessIB, SensorLayerThickness, kSensTypeID, kBuildLevel);
+//    double turbo = radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], SensorSizeRows);
+//    its->defineLayerTurbo(idLr, phi0, rLr, nStaveLr, nChipsPerStaveLr, SensorSizeRows, turbo,
+//                          ChipThicknessIB, SensorLayerThickness, kSensTypeID, kBuildLevel);
+    its->defineInnerLayerITS3(idLr, rLr, its3Zlength, 
+                              SensorLayerThickness, kSensTypeID, kBuildLevel);
   }
 
   // *** ITS3 detector definition ends here ***
