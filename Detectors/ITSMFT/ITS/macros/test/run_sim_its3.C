@@ -91,7 +91,7 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
   // ===| Add ITS |============================================================
 //  o2::its::Detector* its = new o2::its::Detector(kTRUE);
   // *** ITS3 detector definition begins here ***
-  const int kNLrInner = 3;
+  const int kNLrInner = 4;
 
   const int kBuildLevel = 0;
   const int kSensTypeID = 0; // dummy id for Alpide sensor
@@ -99,17 +99,14 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
   const float ChipThicknessIB = 50.e-4;
 
   enum { kRmn,
-         kRmd,
-         kRmx,
-         kNModPerStave,
-         kPhi0,
-         kNStave,
+         kZlen,
          kNPar };
 
   const double tdr5dat[kNLrInner][kNPar] = {
-    {2.24, 2.34, 2.67, 9., 16.42, 12}, // for each inner layer: rMin,rMid,rMax,NChip/Stave, phi0, nStaves
-    {3.01, 3.15, 3.46, 9., 12.18, 16},
-    {3.78, 3.93, 4.21, 9., 9.55, 20},
+    {2.34, 30.00}, // for each inner layer: rMin,zLen
+    {3.20, 30.15},
+    {3.99, 30.15}, 
+    {4.21, 30.00}
   };
 
   static constexpr int NCols = 1024;
@@ -129,17 +126,14 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
   its->setStaveModelIB(o2::its::Detector::kIBModel4);
 
   for (int idLr = 0; idLr < kNLrInner; idLr++) {
-    double rLr = tdr5dat[idLr][kRmd];
-    double phi0 = tdr5dat[idLr][kPhi0];
+    double rLr = tdr5dat[idLr][kRmn];
+    double zlen = tdr5dat[idLr][kZlen];
 
-    int nStaveLr = TMath::Nint(tdr5dat[idLr][kNStave]);
-    int nModPerStaveLr = TMath::Nint(tdr5dat[idLr][kNModPerStave]);
-    int nChipsPerStaveLr = nModPerStaveLr;
 
 //    double turbo = radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], SensorSizeRows);
 //    its->defineLayerTurbo(idLr, phi0, rLr, nStaveLr, nChipsPerStaveLr, SensorSizeRows, turbo,
 //                          ChipThicknessIB, SensorLayerThickness, kSensTypeID, kBuildLevel);
-    its->defineInnerLayerITS3(idLr, rLr, its3Zlength, 
+    its->defineInnerLayerITS3(idLr, rLr, zlen, 
                               SensorLayerThickness, kSensTypeID, kBuildLevel);
   }
 
