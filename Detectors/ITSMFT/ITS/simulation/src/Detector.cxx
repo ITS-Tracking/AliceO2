@@ -972,6 +972,8 @@ void Detector::constructDetectorGeometry()
       mGeometry[j] = new V3Layer(j, kFALSE);
     }
 
+    mGeometry[j]->setNumberOfInnerLayers(mNumberOfInnerLayers);
+
     if (mITS3Layer[j]) {
       mGeometry[j]->setIsITS3(kTRUE);
       mGeometry[j]->setIBModuleZLength(mLayerZLen[j]);

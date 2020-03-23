@@ -98,6 +98,8 @@ class V3Layer : public V11Geometry
 
   Int_t getBuildLevel() const { return mBuildLevel; }
 
+  Int_t getNumberOfInnerlayers() const { return mNumberOfInnerLayers; };
+
   Detector::Model getStaveModel() const { return mStaveModel; }
 
   void setChipThick(Double_t t) { mChipThickness = t; };
@@ -141,6 +143,8 @@ class V3Layer : public V11Geometry
   void setBuildLevel(Int_t buildLevel) { mBuildLevel = buildLevel; }
 
   void setStaveModel(o2::its::Detector::Model model) { mStaveModel = model; }
+
+  void setNumberOfInnerLayers(const Int_t n) { mNumberOfInnerLayers = n; };
 
   /// Adds the Gamma Conversion Rods to the geometry
   /// \param diam the diameter of each rod
@@ -320,6 +324,7 @@ class V3Layer : public V11Geometry
   void addTranslationToCombiTrans(TGeoCombiTrans* ct, Double_t dx = 0, Double_t dy = 0, Double_t dz = 0) const;
 
   Int_t mLayerNumber;        ///< Current layer number
+  Int_t mNumberOfInnerLayers;///< Actual number of inner layers
   Double_t mPhi0;            ///< lab phi of 1st stave, in degrees!!!
   Double_t mLayerRadius;     ///< Inner radius of this layer
   Double_t mSensorThickness; ///< Sensor thickness

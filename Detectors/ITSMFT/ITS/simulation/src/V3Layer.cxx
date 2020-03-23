@@ -255,6 +255,7 @@ ClassImp(V3Layer);
 V3Layer::V3Layer()
   : V11Geometry(),
     mLayerNumber(0),
+    mNumberOfInnerLayers(0),
     mPhi0(0),
     mLayerRadius(0),
     mSensorThickness(0),
@@ -283,6 +284,7 @@ V3Layer::V3Layer()
 V3Layer::V3Layer(Int_t lay, Bool_t turbo, Int_t debug)
   : V11Geometry(debug),
     mLayerNumber(lay),
+    mNumberOfInnerLayers(sNumberOfInnerLayers),
     mPhi0(0),
     mLayerRadius(0),
     mSensorThickness(0),
@@ -458,8 +460,8 @@ void V3Layer::createITS3Layer(TGeoVolume* motherVolume, const TGeoManager* mgr)
   TGeoTube* stave = new TGeoTube(rmin, rmax, mIBModuleZLength / 2);
   TGeoTube* layer = new TGeoTube(rmin, rmax, mIBModuleZLength / 2);
 
-  TGeoMedium* medSi = mgr->GetMedium("SI$");
-  TGeoMedium* medAir = mgr->GetMedium("AIR$");
+  TGeoMedium* medSi = mgr->GetMedium("ITS_SI$");
+  TGeoMedium* medAir = mgr->GetMedium("ITS_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName, sensor, medSi);
   TGeoVolume* chipVol = new TGeoVolume(chipName, chip, medAir);
@@ -535,7 +537,7 @@ TGeoVolume* V3Layer::createStave(const TGeoManager* /*mgr*/)
   TGeoVolume* mechStaveVol = nullptr;
 
   // Now build up the stave
-  if (mLayerNumber < sNumberOfInnerLayers) {
+  if (mLayerNumber < mNumberOfInnerLayers) {
     TGeoVolume* modVol = createStaveInnerB();
     ypos = (static_cast<TGeoBBox*>(modVol->GetShape()))->GetDY() - mChipThickness; // = 0 if not kIBModel4
     staveVol->AddNode(modVol, 0, new TGeoTranslation(0, ypos, 0));
@@ -1903,7 +1905,8 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   ymod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDY();
   zmod = (static_cast<TGeoBBox*>(moduleVol->GetShape()))->GetDZ();
 
-  if (mLayerNumber <= 4)
+  if (mLayerNumber == mNumberOfInnerLayers ||
+      mLayerNumber == mNumberOfInnerLayers + 1)
     zlen = sOBColdPlateZLenML / 2; // Middle Layer
   else
     zlen = sOBColdPlateZLenOL / 2; // Outer Layer
@@ -2773,7 +2776,8 @@ TGeoVolume* V3Layer::createSpaceFrameOuterB2(const TGeoManager* mgr)
     ytru[i] = volShape->GetY(i);
   }
 
-  Int_t nUnits = sOBSpaceFrameNUnits[mLayerNumber / 5]; // 3,4 -> 0 - 5,6 -> 1
+  Int_t iOBLayer = mLayerNumber - mNumberOfInnerLayers + 3;
+  Int_t nUnits = sOBSpaceFrameNUnits[iOBLayer / 5]; // 3,4 -> 0 - 5,6 -> 1
   zlen = (nUnits - 2) * sOBSpaceFrameUnitLen;           // Take end units out
 
   TGeoXtru* spaceFrameCentral = new TGeoXtru(2);
@@ -3724,7 +3728,7 @@ Double_t V3Layer::radiusOmTurboContainer()
 
 void V3Layer::setNumberOfUnits(Int_t u)
 {
-  if (mLayerNumber < sNumberOfInnerLayers) {
+  if (mLayerNumber < mNumberOfInnerLayers) {
     mNumberOfChips = u;
   } else {
     mNumberOfModules = u;
