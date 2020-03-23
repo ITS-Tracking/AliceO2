@@ -468,27 +468,27 @@ void V3Layer::createITS3Layer(TGeoVolume* motherVolume, const TGeoManager* mgr)
   TGeoVolume* staveVol = new TGeoVolume(staveName, stave, medAir);
   TGeoVolume* layerVol = new TGeoVolume(layerName, layer, medAir);
 
-  LOG(INFO) << "Inserting " << sensVol->GetName() << " inside " << chipVol->GetName();
+  LOG(DEBUG) << "Inserting " << sensVol->GetName() << " inside " << chipVol->GetName();
   chipVol->AddNode(sensVol, 1, nullptr);
 
-  LOG(INFO) << "Inserting " << chipVol->GetName() << " inside " << modVol->GetName();
+  LOG(DEBUG) << "Inserting " << chipVol->GetName() << " inside " << modVol->GetName();
   modVol->AddNode(chipVol, 0, nullptr);
   mHierarchy[kChip] = 1;
 
-  LOG(INFO) << "Inserting " << modVol->GetName() << " inside " << hstaveVol->GetName();
+  LOG(DEBUG) << "Inserting " << modVol->GetName() << " inside " << hstaveVol->GetName();
   hstaveVol->AddNode(modVol, 0, nullptr);
   mHierarchy[kModule] = 1;
 
-  LOG(INFO) << "Inserting " << hstaveVol->GetName() << " inside " << staveVol->GetName();
+  LOG(DEBUG) << "Inserting " << hstaveVol->GetName() << " inside " << staveVol->GetName();
   staveVol->AddNode(hstaveVol, 0, nullptr);
   mHierarchy[kHalfStave] = 1;
 
-  LOG(INFO) << "Inserting " << staveVol->GetName() << " inside " << layerVol->GetName();
+  LOG(DEBUG) << "Inserting " << staveVol->GetName() << " inside " << layerVol->GetName();
   layerVol->AddNode(staveVol, 0, nullptr);
   mHierarchy[kStave] = 1;
 
   // Finally put everything in the mother volume
-  LOG(INFO) << "Inserting " << layerVol->GetName() << " inside " << motherVolume->GetName();
+  LOG(DEBUG) << "Inserting " << layerVol->GetName() << " inside " << motherVolume->GetName();
   motherVolume->AddNode(layerVol, 1, nullptr);
 
   return;
