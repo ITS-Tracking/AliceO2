@@ -109,30 +109,19 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
     {4.21, 30.00}
   };
 
-  static constexpr int NCols = 1024;
-  static constexpr int NRows = 512;
-  static constexpr float PitchCol = 29.24e-4;
-  static constexpr float PitchRow = 26.88e-4;
-  static constexpr float PassiveEdgeReadOut = 0.12f;
-  static constexpr float PassiveEdgeTop = 37.44e-4;
-  static constexpr float ActiveMatrixSizeRows = PitchRow * NRows;
   static constexpr float SensorLayerThickness = 30.e-4;
-  static constexpr float SensorSizeRows = ActiveMatrixSizeRows + PassiveEdgeTop + PassiveEdgeReadOut;
-
-  static constexpr float its3Zlength = 30.0;
 
   o2::its::Detector* its = new o2::its::Detector(kTRUE, kNLrInner);
 
-  its->setStaveModelIB(o2::its::Detector::kIBModel4);
+//  its->setStaveModelIB(o2::its::Detector::kIBModel4);
+  its->setStaveModelOB(o2::its::Detector::kOBModel2);
+  its->createOuterBarrel(kFALSE);
+//  its->createOuterBarrel(kTRUE);
 
   for (int idLr = 0; idLr < kNLrInner; idLr++) {
     double rLr = tdr5dat[idLr][kRmn];
     double zlen = tdr5dat[idLr][kZlen];
 
-
-//    double turbo = radii2Turbo(tdr5dat[idLr][kRmn], rLr, tdr5dat[idLr][kRmx], SensorSizeRows);
-//    its->defineLayerTurbo(idLr, phi0, rLr, nStaveLr, nChipsPerStaveLr, SensorSizeRows, turbo,
-//                          ChipThicknessIB, SensorLayerThickness, kSensTypeID, kBuildLevel);
     its->defineInnerLayerITS3(idLr, rLr, zlen, 
                               SensorLayerThickness, kSensTypeID, kBuildLevel);
   }

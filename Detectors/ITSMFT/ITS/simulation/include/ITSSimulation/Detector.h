@@ -262,6 +262,9 @@ class Detector : public o2::base::DetImpl<Detector>
   virtual Model getStaveModelIB() const { return mStaveModelInnerBarrel; }
   virtual Model getStaveModelOB() const { return mStaveModelOuterBarrel; }
 
+  void createOuterBarrel(const Bool_t ob) { mCreateOuterBarrel = ob; };
+  Bool_t isCreateOuterBarrel() { return mCreateOuterBarrel; };
+
   GeometryTGeo* mGeometryTGeo; //! access to geometry details
 
  protected:
@@ -280,6 +283,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   Int_t mNumberOfInnerLayers;      //! number of ITS3 inner layers
   Int_t mTotalNumberOfLayers;      //! total number of ITS3 layers (IB+OB)
+  Bool_t mCreateOuterBarrel;       //! true to create the Outer Barrel
 
   Int_t mNumberOfDetectors;
 

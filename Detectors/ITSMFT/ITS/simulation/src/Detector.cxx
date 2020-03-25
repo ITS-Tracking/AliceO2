@@ -951,13 +951,15 @@ void Detector::constructDetectorGeometry()
   // Create the wrapper volumes
   TGeoVolume** wrapVols = nullptr;
 
-  if (sNumberOfWrapperVolumes) {
+  if (sNumberOfWrapperVolumes && mCreateOuterBarrel) {
     wrapVols = new TGeoVolume*[sNumberOfWrapperVolumes];
     for (int id = 0; id < sNumberOfWrapperVolumes; id++) {
       wrapVols[id] = createWrapperVolume(id);
       vITSV->AddNode(wrapVols[id], 1, nullptr);
     }
   }
+
+  if (!mCreateOuterBarrel) mTotalNumberOfLayers = mNumberOfInnerLayers;
 
   // Now create the actual geometry
   for (Int_t j = 0; j < mTotalNumberOfLayers; j++) {
@@ -986,7 +988,7 @@ void Detector::constructDetectorGeometry()
     mGeometry[j]->setChipType(mChipTypeID[j]);
     mGeometry[j]->setBuildLevel(mBuildLevel[j]);
 
-    if (j < sNumberInnerLayers) {
+    if (j < mNumberOfInnerLayers) {
       mGeometry[j]->setStaveModel(mStaveModelInnerBarrel);
     } else {
       mGeometry[j]->setStaveModel(mStaveModelOuterBarrel);
@@ -1001,6 +1003,7 @@ void Detector::constructDetectorGeometry()
       mGeometry[j]->setSensorThick(mDetectorThickness[j]);
     }
 
+    if (mCreateOuterBarrel)
     for (int iw = 0; iw < sNumberOfWrapperVolumes; iw++) {
       if (mLayerRadii[j] > mWrapperMinRadius[iw] && mLayerRadii[j] < mWrapperMaxRadius[iw]) {
         LOG(DEBUG) << "Will embed layer " << j << " in wrapper volume " << iw;
@@ -1017,9 +1020,9 @@ void Detector::constructDetectorGeometry()
   mServicesGeometry = new V3Services();
 
 //  createInnerBarrelServices(wrapVols[0]);
-  createMiddlBarrelServices(wrapVols[1]);
-  createOuterBarrelServices(wrapVols[2]);
-  createOuterBarrelSupports(vITSV);
+//  createMiddlBarrelServices(wrapVols[1]);
+//  createOuterBarrelServices(wrapVols[2]);
+//  createOuterBarrelSupports(vITSV);
 
   // TEMPORARY - These routines will be obsoleted once the new services are completed - TEMPORARY
   //  createServiceBarrel(kTRUE, wrapVols[0]);
