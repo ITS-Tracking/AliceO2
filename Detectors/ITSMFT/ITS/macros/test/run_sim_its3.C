@@ -1,27 +1,28 @@
 #if !defined(__CLING__) || defined(__ROOTCLING__)
-  #include <Rtypes.h>
-  #include <TSystem.h>
-  #include <TMath.h>
-  #include <TString.h>
-  #include <TStopwatch.h>
-  #include <TGeoManager.h>
+#include <Rtypes.h>
+#include <TSystem.h>
+#include <TMath.h>
+#include <TString.h>
+#include <TStopwatch.h>
+#include <TGeoManager.h>
+#include <array>
+#include <vector>
 
-  #include "FairRunSim.h"
-  #include "FairRuntimeDb.h"
-  #include "FairPrimaryGenerator.h"
-  #include "FairBoxGenerator.h"
-  #include "FairParRootFileIo.h"
+#include "FairRunSim.h"
+#include "FairRuntimeDb.h"
+#include "FairPrimaryGenerator.h"
+#include "FairBoxGenerator.h"
+#include "FairParRootFileIo.h"
 
-  #include "DetectorsPassive/Cave.h"
-  #include "Field/MagneticField.h"
+#include "DetectorsPassive/Cave.h"
+#include "Field/MagneticField.h"
 
-  #include "ITSBase/GeometryTGeo.h"
-  #include "ITSMFTBase/SegmentationAlpide.h"
-  #include "ITSSimulation/Detector.h"
-  #include "ITSSimulation/Detector.h"
-  #include "TPCSimulation/Detector.h"
+#include "ITSBase/GeometryTGeo.h"
+#include "ITSMFTBase/SegmentationAlpide.h"
+#include "ITSSimulation/Detector.h"
+#include "ITSSimulation/Detector.h"
+#include "TPCSimulation/Detector.h"
 #endif
-
 
 double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
 {
@@ -33,11 +34,10 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
 {
   TString dir = getenv("VMCWORKDIR");
   TString geom_dir = dir + "/Detectors/Geometry/";
-  gSystem->Setenv("GEOMPATH",geom_dir.Data());
-
+  gSystem->Setenv("GEOMPATH", geom_dir.Data());
 
   TString tut_configdir = dir + "/Detectors/gconfig";
-  gSystem->Setenv("CONFIG_DIR",tut_configdir.Data());
+  gSystem->Setenv("CONFIG_DIR", tut_configdir.Data());
 
   // Output file name
   char fileout[100];
@@ -84,14 +84,14 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
   //  tpc->SetGeometry();
   //  run->AddModule(tpc);
 
-//  TGeoGlobalMagField::Instance()->SetField(new o2::field::MagneticField("Maps","Maps", -1., -1., o2::field::MagneticField::k5kG));
-  o2::field::MagneticField field("field","field +5kG");
+  //  TGeoGlobalMagField::Instance()->SetField(new o2::field::MagneticField("Maps","Maps", -1., -1., o2::field::MagneticField::k5kG));
+  o2::field::MagneticField field("field", "field +5kG");
   run->SetField(&field);
 
   // ===| Add ITS |============================================================
-//  o2::its::Detector* its = new o2::its::Detector(kTRUE);
+  //  o2::its::Detector* its = new o2::its::Detector(kTRUE);
   // *** ITS3 detector definition begins here ***
-  const int kNLrInner = 4;
+  // const int kNLrInner = 4;
 
   const int kBuildLevel = 0;
   const int kSensTypeID = 0; // dummy id for Alpide sensor
@@ -102,45 +102,59 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
          kZlen,
          kNPar };
 
-  const double tdr5dat[kNLrInner][kNPar] = {
-    {2.34, 30.00}, // for each inner layer: rMin,zLen
-    {3.20, 30.15},
-    {3.99, 30.15}, 
-    {4.21, 30.00}
-  };
+  // const double tdr5dat[kNLrInner][kNPar] = {
+  //   {2.34, 30.00}, // for each inner layer: rMin,zLen
+  //   {3.20, 30.15},
+  //   {3.99, 30.15},
+  //   {4.21, 30.00}
+  // };
+
+  std::vector<std::array<double, 2>> tdr5data;
+  tdr5data.emplace_back(std::array<double, 2>{2.34, 30.00});
+  tdr5data.emplace_back(std::array<double, 2>{3.20, 30.15});
+  tdr5data.emplace_back(std::array<double, 2>{3.99, 30.15});
+  tdr5data.emplace_back(std::array<double, 2>{4.21, 30.00});
+  tdr5data.emplace_back(std::array<double, 2>{4.66, 30.00});
 
   static constexpr float SensorLayerThickness = 30.e-4;
 
-  o2::its::Detector* its = new o2::its::Detector(kTRUE, kNLrInner);
-
-//  its->setStaveModelIB(o2::its::Detector::kIBModel4);
+  // o2::its::Detector* its = new o2::its::Detector(kTRUE, kNLrInner);
+  o2::its::Detector* its = new o2::its::Detector(kTRUE, tdr5data.size());
+  //  its->setStaveModelIB(o2::its::Detector::kIBModel4);
   its->setStaveModelOB(o2::its::Detector::kOBModel2);
   its->createOuterBarrel(kFALSE);
-//  its->createOuterBarrel(kTRUE);
+  //  its->createOuterBarrel(kTRUE);
 
-  for (int idLr = 0; idLr < kNLrInner; idLr++) {
-    double rLr = tdr5dat[idLr][kRmn];
-    double zlen = tdr5dat[idLr][kZlen];
+  // for (int idLr = 0; idLr < kNLrInner; idLr++) {
+  //   double rLr = tdr5dat[idLr][kRmn];
+  //   double zlen = tdr5dat[idLr][kZlen];
 
-    its->defineInnerLayerITS3(idLr, rLr, zlen, 
+  //   its->defineInnerLayerITS3(idLr, rLr, zlen,
+  //                             SensorLayerThickness, kSensTypeID, kBuildLevel);
+  // }
+  auto idLayer{0};
+  for (auto& layerData : tdr5data) {
+
+    double rLr = layerData[kRmn];
+    double zlen = layerData[kZlen];
+    its->defineInnerLayerITS3(idLayer, rLr, zlen,
                               SensorLayerThickness, kSensTypeID, kBuildLevel);
+    ++idLayer;
   }
-
   // *** ITS3 detector definition ends here ***
   run->AddModule(its);
-
 
   // ===| Add TPC |============================================================
   o2::tpc::Detector* tpc = new o2::tpc::Detector(kTRUE);
   //tpc->SetGeoFileName("TPCGeometry.root");
-//  run->AddModule(tpc);
+  //  run->AddModule(tpc);
 
   // Create PrimaryGenerator
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
   FairBoxGenerator* boxGen = new FairBoxGenerator(2212, 1); /*protons*/
 
   //boxGen->SetThetaRange(0.0, 90.0);
-  boxGen->SetEtaRange(-0.9,0.9);
+  boxGen->SetEtaRange(-0.9, 0.9);
   boxGen->SetPRange(100, 100.01);
   boxGen->SetPhiRange(0., 360.);
   boxGen->SetDebug(kTRUE);
@@ -150,7 +164,7 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
   run->SetGenerator(primGen);
 
   // store track trajectories
-//  run->SetStoreTraj(kTRUE);
+  //  run->SetStoreTraj(kTRUE);
 
   // Initialize simulation run
   run->Init();
@@ -165,17 +179,19 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
 
   // Start run
   run->Run(nEvents);
-//  run->CreateGeometryFile("geofile_full.root");
+  //  run->CreateGeometryFile("geofile_full.root");
 
   // Finish
   timer.Stop();
   Double_t rtime = timer.RealTime();
   Double_t ctime = timer.CpuTime();
-  std::cout << std::endl << std::endl;
+  std::cout << std::endl
+            << std::endl;
   std::cout << "Macro finished succesfully." << std::endl;
   std::cout << "Output file is " << outFile << std::endl;
   std::cout << "Parameter file is " << parFile << std::endl;
-  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << std::endl << std::endl;
+  std::cout << "Real time " << rtime << " s, CPU time " << ctime << "s" << std::endl
+            << std::endl;
 
   delete run;
 
