@@ -114,7 +114,9 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
   tdr5data.emplace_back(std::array<double, 2>{3.20, 30.15});
   tdr5data.emplace_back(std::array<double, 2>{3.99, 30.15});
   tdr5data.emplace_back(std::array<double, 2>{4.21, 30.00});
+  tdr5data.emplace_back(std::array<double, 2>{4.40, 30.00});
   tdr5data.emplace_back(std::array<double, 2>{4.66, 30.00});
+  tdr5data.emplace_back(std::array<double, 2>{100.00, 200.00});
 
   static constexpr float SensorLayerThickness = 30.e-4;
 
@@ -123,22 +125,12 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
   //  its->setStaveModelIB(o2::its::Detector::kIBModel4);
   its->setStaveModelOB(o2::its::Detector::kOBModel2);
   its->createOuterBarrel(kFALSE);
-  //  its->createOuterBarrel(kTRUE);
 
-  // for (int idLr = 0; idLr < kNLrInner; idLr++) {
-  //   double rLr = tdr5dat[idLr][kRmn];
-  //   double zlen = tdr5dat[idLr][kZlen];
-
-  //   its->defineInnerLayerITS3(idLr, rLr, zlen,
-  //                             SensorLayerThickness, kSensTypeID, kBuildLevel);
-  // }
   auto idLayer{0};
   for (auto& layerData : tdr5data) {
-
     double rLr = layerData[kRmn];
     double zlen = layerData[kZlen];
-    its->defineInnerLayerITS3(idLayer, rLr, zlen,
-                              SensorLayerThickness, kSensTypeID, kBuildLevel);
+    its->defineInnerLayerITS3(idLayer, rLr, zlen, SensorLayerThickness, kSensTypeID, kBuildLevel);
     ++idLayer;
   }
   // *** ITS3 detector definition ends here ***
@@ -155,7 +147,8 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
 
   //boxGen->SetThetaRange(0.0, 90.0);
   boxGen->SetEtaRange(-0.9, 0.9);
-  boxGen->SetPRange(100, 100.01);
+  // boxGen->SetPRange(0.5, 0.51);
+  boxGen->SetPtRange(0.2, 0.21);
   boxGen->SetPhiRange(0., 360.);
   boxGen->SetDebug(kTRUE);
 
