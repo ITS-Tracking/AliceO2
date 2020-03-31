@@ -111,12 +111,12 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
 
   std::vector<std::array<double, 2>> tdr5data;
   tdr5data.emplace_back(std::array<double, 2>{2.34, 30.00});
-  tdr5data.emplace_back(std::array<double, 2>{3.20, 30.15});
-  tdr5data.emplace_back(std::array<double, 2>{3.99, 30.15});
-  tdr5data.emplace_back(std::array<double, 2>{4.21, 30.00});
-  tdr5data.emplace_back(std::array<double, 2>{4.40, 30.00});
-  tdr5data.emplace_back(std::array<double, 2>{4.66, 30.00});
-  tdr5data.emplace_back(std::array<double, 2>{100.00, 200.00});
+  tdr5data.emplace_back(std::array<double, 2>{5.20, 30.15});
+  tdr5data.emplace_back(std::array<double, 2>{10.99, 30.15});
+  tdr5data.emplace_back(std::array<double, 2>{30.21, 150.00});
+  tdr5data.emplace_back(std::array<double, 2>{50.40, 150.00});
+  tdr5data.emplace_back(std::array<double, 2>{70.66, 150.00});
+  tdr5data.emplace_back(std::array<double, 2>{100.00, 150.00});
 
   static constexpr float SensorLayerThickness = 30.e-4;
 
@@ -143,7 +143,7 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
 
   // Create PrimaryGenerator
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
-  FairBoxGenerator* boxGen = new FairBoxGenerator(2212, 1); /*protons*/
+  FairBoxGenerator* boxGen = new FairBoxGenerator(2212, 10); /*protons*/
 
   //boxGen->SetThetaRange(0.0, 90.0);
   boxGen->SetEtaRange(-0.9, 0.9);
