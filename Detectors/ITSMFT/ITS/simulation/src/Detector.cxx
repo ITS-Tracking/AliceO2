@@ -936,7 +936,8 @@ void Detector::constructDetectorGeometry()
       LOG(FATAL) << "Wrong Sensor thickness for layer " << j << "(" << mDetectorThickness[j] << ")";
     }
 
-    if (j > 0) {
+    if (j > 0 &&     // Always check IB, check OB only if present
+        ( (j < mNumberOfInnerLayers) || mCreateOuterBarrel ) ) {
       if (mLayerRadii[j] <= mLayerRadii[j - 1]) {
         LOG(FATAL) << "Layer " << j << " radius (" << mLayerRadii[j] << ") is smaller than layer " << j - 1
                    << " radius (" << mLayerRadii[j - 1] << ")";
