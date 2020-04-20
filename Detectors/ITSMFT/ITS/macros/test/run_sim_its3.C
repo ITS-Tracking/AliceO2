@@ -113,7 +113,9 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
   tdr5data.emplace_back(std::array<double, 2>{2.34, 30.00});
   tdr5data.emplace_back(std::array<double, 2>{5.20, 30.15});
   tdr5data.emplace_back(std::array<double, 2>{10.99, 30.15});
-  tdr5data.emplace_back(std::array<double, 2>{30.21, 150.00});
+  tdr5data.emplace_back(std::array<double, 2>{25.99, 100.15});
+  tdr5data.emplace_back(std::array<double, 2>{30.21, 100.00});
+  tdr5data.emplace_back(std::array<double, 2>{35.99, 100.15});
   tdr5data.emplace_back(std::array<double, 2>{50.40, 150.00});
   tdr5data.emplace_back(std::array<double, 2>{70.66, 150.00});
   tdr5data.emplace_back(std::array<double, 2>{100.00, 150.00});

@@ -100,6 +100,14 @@ o2_add_test_root_macro(run_sim_its3.C
                                              O2::TPCSimulation
                        LABELS its)
 
+o2_add_test_root_macro(run5itsReconstruction.C
+                       PUBLIC_LINK_LIBRARIES O2::ITSMFTReconstruction
+                                             O2::DataFormatsITSMFT
+                                             O2::ITSMFTBase
+                                             O2::ITSMFTSimulation
+                                             O2::TPCSimulation
+                       LABELS its)
+
 o2_add_test_root_macro(run_sim_its3_like-its2.C
                        PUBLIC_LINK_LIBRARIES O2::ITSMFTReconstruction
                                              O2::DataFormatsITSMFT
