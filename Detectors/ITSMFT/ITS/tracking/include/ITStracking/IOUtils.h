@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "DataFormatsITSMFT/ROFRecord.h"
+#include "ITSMFTSimulation/Hit.h"
 #include "ITStracking/Configuration.h"
 #include "ITStracking/ROframe.h"
 #include "ITStracking/json.h"
@@ -56,7 +57,7 @@ namespace ioutils
 void loadConfigurations(const std::string&);
 std::vector<ROframe> loadEventData(const std::string&);
 void loadEventData(ROframe& events, gsl::span<const itsmft::Cluster> clusters,
-                   const dataformats::MCTruthContainer<MCCompLabel>* clsLabels = nullptr);
+                   const dataformats::MCTruthContainer<MCCompLabel>* clsLabels = nullptr);                  
 int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, gsl::span<const itsmft::Cluster> clusters,
                     const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
 void generateSimpleData(ROframe& event, const int phiDivs, const int zDivs);
