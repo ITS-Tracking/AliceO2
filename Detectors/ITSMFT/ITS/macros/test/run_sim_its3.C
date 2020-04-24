@@ -30,7 +30,7 @@ double radii2Turbo(double rMin, double rMid, double rMax, double sensW)
   return TMath::ASin((rMax * rMax - rMin * rMin) / (2 * rMid * sensW)) * TMath::RadToDeg();
 }
 
-void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
+void run_sim_its3(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 {
   TString dir = getenv("VMCWORKDIR");
   TString geom_dir = dir + "/Detectors/Geometry/";
@@ -111,8 +111,8 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
 
   std::vector<std::array<double, 2>> tdr5data;
   tdr5data.emplace_back(std::array<double, 2>{2.34, 30.00});
-  tdr5data.emplace_back(std::array<double, 2>{5.20, 30.15});
-  tdr5data.emplace_back(std::array<double, 2>{10.99, 30.15});
+  tdr5data.emplace_back(std::array<double, 2>{3.15, 30.15});
+  tdr5data.emplace_back(std::array<double, 2>{3.93, 30.15});
   tdr5data.emplace_back(std::array<double, 2>{25.99, 100.15});
   tdr5data.emplace_back(std::array<double, 2>{30.21, 100.00});
   tdr5data.emplace_back(std::array<double, 2>{35.99, 100.15});
@@ -145,12 +145,12 @@ void run_sim_its3(Int_t nEvents = 1, TString mcEngine = "TGeant3")
 
   // Create PrimaryGenerator
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
-  FairBoxGenerator* boxGen = new FairBoxGenerator(2212, 10); /*protons*/
+  FairBoxGenerator* boxGen = new FairBoxGenerator(2212, 20); /*protons*/
 
   //boxGen->SetThetaRange(0.0, 90.0);
   boxGen->SetEtaRange(-0.9, 0.9);
   // boxGen->SetPRange(0.5, 0.51);
-  boxGen->SetPtRange(0.2, 0.21);
+  boxGen->SetPtRange(0.2, 0.6);
   boxGen->SetPhiRange(0., 360.);
   boxGen->SetDebug(kTRUE);
 
