@@ -32,7 +32,8 @@ o2_add_library(ITStracking
                                      O2::DataFormatsITSMFT
                                      O2::SimulationDataFormat
                                      O2::ITSBase
-                                     O2::DataFormatsITS)
+                                     O2::DataFormatsITS
+                                     O2::ITSMFTSimulation)
 
 o2_target_root_dictionary(ITStracking
                           HEADERS include/ITStracking/ClusterLines.h

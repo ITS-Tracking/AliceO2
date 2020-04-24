@@ -21,7 +21,7 @@ namespace o2
 namespace its
 {
 
-void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, constants::its::LayersNumber>& cl,
+void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const std::vector<std::vector<Cluster>>& cl,
                                       const std::array<float, 3>& pVtx, const int iteration)
 {
 
@@ -32,13 +32,15 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
     int ind;
   };
 
+  mClusters.resize(cl.size());
+  
   mPrimaryVertex = {pVtx[0], pVtx[1], pVtx[2]};
 
   if (iteration == 0) {
 
     std::vector<ClusterHelper> cHelper;
 
-    for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+    for (int iLayer{0}; iLayer < cl.size(); ++iLayer) {
 
       const auto& currentLayer{cl[iLayer]};
       const int clustersNum{static_cast<int>(currentLayer.size())};
@@ -99,7 +101,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
 
   mRoads.clear();
 
-  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+  for (int iLayer{0}; iLayer < cl.size(); ++iLayer) {
     if (iLayer < constants::its::CellsPerRoad) {
       mCells[iLayer].clear();
       float cellsMemorySize =
@@ -125,7 +127,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
     }
   }
 
-  for (int iLayer{0}; iLayer < constants::its::LayersNumber; ++iLayer) {
+  for (int iLayer{0}; iLayer < cl.size(); ++iLayer) {
     if (iLayer < constants::its::TrackletsPerRoad) {
       mTracklets[iLayer].clear();
       float trackletsMemorySize =

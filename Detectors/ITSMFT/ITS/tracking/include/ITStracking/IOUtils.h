@@ -57,9 +57,11 @@ namespace ioutils
 void loadConfigurations(const std::string&);
 std::vector<ROframe> loadEventData(const std::string&);
 void loadEventData(ROframe& events, gsl::span<const itsmft::Cluster> clusters,
-                   const dataformats::MCTruthContainer<MCCompLabel>* clsLabels = nullptr);                  
+                   const dataformats::MCTruthContainer<MCCompLabel>* clsLabels = nullptr);
 int loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& events, gsl::span<const itsmft::Cluster> clusters,
                     const dataformats::MCTruthContainer<MCCompLabel>* mClsLabels = nullptr);
+int loadROFrameDataRun5(const o2::itsmft::ROFRecord& rof, ROframe& events, gsl::span<const itsmft::Hit> hits,
+                        const MCCompLabel* mClsLabels = nullptr, const int nLayers = constants::its::LayersNumber);
 void generateSimpleData(ROframe& event, const int phiDivs, const int zDivs);
 
 std::vector<std::unordered_map<int, Label>> loadLabels(const int, const std::string&);

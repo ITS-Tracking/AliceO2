@@ -166,6 +166,32 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe& event, g
   return clusters_in_frame.size();
 }
 
+int ioutils::loadROFrameDataRun5(const o2::itsmft::ROFRecord& rof,
+                                 ROframe& event,
+                                 gsl::span<const itsmft::Hit> hits,
+                                 const MCCompLabel* labels,
+                                 const int nLayers)
+{
+  event.clear(nLayers);
+  int clusterId{0};
+
+  auto first = rof.getFirstEntry();
+  auto hits_in_frame = rof.getROFData(hits); // I love templates!
+
+  for (auto& h : hits_in_frame) {
+    int layer = h.GetDetectorID();
+
+    event.addClusterToLayer(layer, h.GetStartX(), h.GetStartY(), h.GetStartZ(), event.getClustersOnLayer(layer).size());
+    if (labels) {
+      event.addClusterLabelToLayer(layer, labels[first + clusterId]);
+    }
+    event.addClusterExternalIndexToLayer(layer, first + clusterId);
+    clusterId++;
+  }
+
+  return hits_in_frame.size();
+}
+
 void ioutils::generateSimpleData(ROframe& event, const int phiDivs, const int zDivs = 1)
 {
   const float angleOffset = constants::math::TwoPi / static_cast<float>(phiDivs);

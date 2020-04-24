@@ -42,10 +42,10 @@ class PrimaryVertexContext
   PrimaryVertexContext(const PrimaryVertexContext&) = delete;
   PrimaryVertexContext& operator=(const PrimaryVertexContext&) = delete;
 
-  virtual void initialise(const MemoryParameters& memParam, const std::array<std::vector<Cluster>, constants::its::LayersNumber>& cl,
+  virtual void initialise(const MemoryParameters& memParam, const std::vector<std::vector<Cluster>>& cl,
                           const std::array<float, 3>& pv, const int iteration);
   const float3& getPrimaryVertex() const;
-  std::array<std::vector<Cluster>, constants::its::LayersNumber>& getClusters();
+  std::vector<std::vector<Cluster>>& getClusters();
   std::array<std::vector<Cell>, constants::its::CellsPerRoad>& getCells();
   std::array<std::vector<int>, constants::its::CellsPerRoad - 1>& getCellsLookupTable();
   std::array<std::vector<std::vector<int>>, constants::its::CellsPerRoad - 1>& getCellsNeighbours();
@@ -68,8 +68,8 @@ class PrimaryVertexContext
  protected:
   float3 mPrimaryVertex;
   std::array<std::vector<Cluster>, constants::its::LayersNumber> mUnsortedClusters;
-  std::array<std::vector<Cluster>, constants::its::LayersNumber> mClusters;
-  std::array<std::vector<bool>, constants::its::LayersNumber> mUsedClusters;
+  std::vector<std::vector<Cluster>> mClusters;
+  std::vector<std::vector<bool>> mUsedClusters;
   std::array<std::vector<Cell>, constants::its::CellsPerRoad> mCells;
   std::array<std::vector<int>, constants::its::CellsPerRoad - 1> mCellsLookupTable;
   std::array<std::vector<std::vector<int>>, constants::its::CellsPerRoad - 1> mCellsNeighbours;
@@ -86,7 +86,7 @@ class PrimaryVertexContext
 
 inline const float3& PrimaryVertexContext::getPrimaryVertex() const { return mPrimaryVertex; }
 
-inline std::array<std::vector<Cluster>, constants::its::LayersNumber>& PrimaryVertexContext::getClusters()
+inline std::vector<std::vector<Cluster>>& PrimaryVertexContext::getClusters()
 {
   return mClusters;
 }

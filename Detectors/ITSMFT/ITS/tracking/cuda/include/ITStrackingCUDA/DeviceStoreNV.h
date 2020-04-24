@@ -38,7 +38,7 @@ class DeviceStoreNV final
   DeviceStoreNV();
 
   UniquePointer<DeviceStoreNV> initialise(const float3&,
-                                          const std::array<std::vector<Cluster>, constants::its::LayersNumber>&,
+                                          const std::vector<std::vector<Cluster>>&,
                                           const std::array<std::vector<Tracklet>, constants::its::TrackletsPerRoad>&,
                                           const std::array<std::vector<Cell>, constants::its::CellsPerRoad>&,
                                           const std::array<std::vector<int>, constants::its::CellsPerRoad - 1>&);
