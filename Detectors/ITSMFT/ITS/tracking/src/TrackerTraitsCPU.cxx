@@ -105,6 +105,9 @@ void TrackerTraitsCPU::computeLayerTracklets()
       }
     }
   }
+  for (size_t i{0}; i < primaryVertexContext->getClusters().size() - 1; ++i) {
+    std::cout << "\t\tLayer " << i << " - " << i + 1 << ": " << primaryVertexContext->getTracklets()[i].size() << std::endl;
+  }
 }
 
 void TrackerTraitsCPU::computeLayerCells()
