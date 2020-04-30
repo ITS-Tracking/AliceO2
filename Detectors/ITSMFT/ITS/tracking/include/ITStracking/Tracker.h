@@ -63,6 +63,7 @@ class Tracker
   dataformats::MCTruthContainer<MCCompLabel>& getTrackLabels();
 
   void clustersToTracks(const ROframe&, std::ostream& = std::cout);
+  void clustersToTracks(const ROframe&, o2::its::lightGeometry lGeom, std::ostream& = std::cout);
 
   void setROFrame(std::uint32_t f) { mROFrame = f; }
   std::uint32_t getROFrame() const { return mROFrame; }

@@ -122,9 +122,9 @@ DeviceStoreNV::DeviceStoreNV()
 
 UniquePointer<DeviceStoreNV> DeviceStoreNV::initialise(const float3& primaryVertex,
                                                        const std::vector<std::vector<Cluster>>& clusters,
-                                                       const std::array<std::vector<Tracklet>, constants::its::TrackletsPerRoad>& tracklets,
-                                                       const std::array<std::vector<Cell>, constants::its::CellsPerRoad>& cells,
-                                                       const std::array<std::vector<int>, constants::its::CellsPerRoad - 1>& cellsLookupTable)
+                                                       const std::vector<std::vector<Tracklet>>& tracklets,
+                                                       const std::vector<std::vector<Cell>>& cells,
+                                                       const std::vector<std::vector<int>>& cellsLookupTable)
 {
   mPrimaryVertex = UniquePointer<float3>{primaryVertex};
 

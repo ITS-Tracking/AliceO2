@@ -110,13 +110,13 @@ void run_sim_its3(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   // };
 
   std::vector<std::array<double, 2>> tdr5data;
-  tdr5data.emplace_back(std::array<double, 2>{2.34, 30.00});
-  tdr5data.emplace_back(std::array<double, 2>{3.15, 30.15});
-  tdr5data.emplace_back(std::array<double, 2>{3.93, 30.15});
-  tdr5data.emplace_back(std::array<double, 2>{25.99, 100.15});
-  tdr5data.emplace_back(std::array<double, 2>{30.21, 100.00});
-  tdr5data.emplace_back(std::array<double, 2>{35.99, 100.15});
-  tdr5data.emplace_back(std::array<double, 2>{50.40, 150.00});
+  tdr5data.emplace_back(std::array<double, 2>{2.34, 27.00});
+  tdr5data.emplace_back(std::array<double, 2>{3.15, 27.15});
+  tdr5data.emplace_back(std::array<double, 2>{3.93, 27.15});
+  tdr5data.emplace_back(std::array<double, 2>{19.4, 80.f});
+  tdr5data.emplace_back(std::array<double, 2>{24.7, 80.f});
+  tdr5data.emplace_back(std::array<double, 2>{35.3, 150.f});
+  tdr5data.emplace_back(std::array<double, 2>{40.5, 150.00});
   tdr5data.emplace_back(std::array<double, 2>{70.66, 150.00});
   tdr5data.emplace_back(std::array<double, 2>{100.00, 150.00});
 

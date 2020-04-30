@@ -13,6 +13,7 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 
+#include "ITStracking/Tracker.h"
 #include "ITStracking/Vertexer.h"
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
@@ -80,6 +81,9 @@ void run5itsReconstruction(const int inspEvt = -1,
   auto* chainITS = rec->AddChain<GPUChainITS>();
   rec->Init();
   o2::its::Vertexer vertexer(chainITS->GetITSVertexerTraits());
+  o2::its::Tracker tracker(chainITS->GetITSTrackerTraits());
+  o2::its::lightGeometry its3LightGeom{std::vector<float>{2.34f, 3.15f, 3.93f, 19.4f, 24.7f, 35.3f, 40.5f, 70.66f, 100.00f},
+                                       std::vector<float>{27.00f, 27.15f, 27.15f, 80.f, 80.f, 150.f, 150.00f, 150.00f, 150.00f}};
 
   const int stopAt = (inspEvt == -1) ? o2simTree->GetEntries() : inspEvt + numEvents;
   const int startAt = (inspEvt == -1) ? 0 : inspEvt;
@@ -100,8 +104,9 @@ void run5itsReconstruction(const int inspEvt = -1,
     std::vector<Vertex> vertITS = vertexer.exportVertices();
     const size_t numVert = vertITS.size();
     foundVerticesBenchmark.Fill(static_cast<float>(iROfCount), static_cast<float>(numVert));
-    verticesITS->swap(vertITS);
     outTree.Fill();
+    
+    tracker.clustersToTracks(frame, its3LightGeom);
   }
   outputfile->cd();
   outTree.Write();

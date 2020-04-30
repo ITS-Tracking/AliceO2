@@ -77,6 +77,37 @@ void Tracker::clustersToTracks(const ROframe& event, std::ostream& timeBenchmark
   computeTracksMClabels(event);
 }
 
+void Tracker::clustersToTracks(const ROframe& event, o2::its::lightGeometry lGeom, std::ostream& timeBenchmarkOutputStream)
+{
+  const int verticesNum = event.getPrimaryVerticesNum();
+  mTracks.clear();
+  mTrackLabels.clear();
+
+  for (int iVertex = 0; iVertex < verticesNum; ++iVertex) {
+
+    float total{0.f};
+
+    for (int iteration = 0; iteration < mTrkParams.size(); ++iteration) {
+      mTraits->UpdateTrackingParameters(mTrkParams[iteration]);
+      /// Ugly hack -> Unifiy float3 definition in CPU and CUDA/HIP code
+      int pass = iteration + iVertex; /// Do not reinitialise the context if we analyse pile-up events
+      std::array<float, 3> pV = {event.getPrimaryVertex(iVertex).x, event.getPrimaryVertex(iVertex).y, event.getPrimaryVertex(iVertex).z};
+      total += evaluateTask(&Tracker::initialisePrimaryVertexContext, "Context initialisation",
+                            timeBenchmarkOutputStream, mMemParams[iteration], event.getClusters(), pV, pass, lGeom);
+      // total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", timeBenchmarkOutputStream);
+      // total += evaluateTask(&Tracker::computeCells, "Cell finding", timeBenchmarkOutputStream);
+      // total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", timeBenchmarkOutputStream, iteration);
+      // total += evaluateTask(&Tracker::findRoads, "Road finding", timeBenchmarkOutputStream, iteration);
+      // total += evaluateTask(&Tracker::findTracks, "Track finding", timeBenchmarkOutputStream, event);
+    }
+
+    if (constants::DoTimeBenchmarks)
+      timeBenchmarkOutputStream << std::setw(2) << " - "
+                                << "Vertex processing completed in: " << total << "ms" << std::endl;
+  }
+  computeTracksMClabels(event);
+}
+
 void Tracker::computeTracklets()
 {
   mTraits->computeLayerTracklets();

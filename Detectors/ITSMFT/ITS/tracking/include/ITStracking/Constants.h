@@ -18,6 +18,7 @@
 #ifndef __OPENCL__
 #include <climits>
 #include <vector>
+#include <iostream>
 #endif
 
 #include "ITStracking/Definitions.h"
@@ -26,7 +27,6 @@ namespace o2
 {
 namespace its
 {
-
 namespace constants
 {
 
@@ -83,6 +83,42 @@ namespace pdgcodes
 constexpr int PionCode{211};
 }
 } // namespace constants
+struct lightGeometry {
+ public:
+  lightGeometry(std::vector<float> RCoordinates, std::vector<float> ZCoordinates)
+  {
+    layers[0] = std::move(RCoordinates);
+    layers[1] = std::move(ZCoordinates);
+  }
+
+  std::vector<float> LayersRCoordinate() const { return layers[0]; }
+  std::vector<float> LayersZCoordinate() const { return layers[1]; }
+  std::vector<float> InverseZBinSize()
+  {
+    std::vector<float> invZBsize;
+    invZBsize.resize(layers[1].size());
+    for (auto iZLength{0}; iZLength < (int)layers[1].size(); ++iZLength) {
+      invZBsize[iZLength] = 0.5f * constants::index_table::ZBins / layers[1][iZLength];
+    }
+    return std::move(invZBsize);
+  }
+  int getZBinIndex(const int layerIndex, const float zCoordinate)
+  {
+    return (zCoordinate + LayersZCoordinate()[layerIndex]) * InverseZBinSize()[layerIndex];
+  }
+  int getPhiBinIndex(const float currentPhi)
+  {
+    return (currentPhi * constants::index_table::InversePhiBinSize);
+  }
+  int getBinIndex(const int zIndex, const int phiIndex)
+  {
+    return std::min(phiIndex * constants::index_table::ZBins + zIndex,
+                    constants::index_table::ZBins * constants::index_table::PhiBins - 1);
+  }
+
+ private:
+  std::array<std::vector<float>, 2> layers;
+};
 } // namespace its
 } // namespace o2
 
