@@ -159,17 +159,15 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
     int bin;
     int ind;
   };
-
-  int CellsPerRoad{(int)cl.size() - 2};
-  int TrackletsPerRoad{(int)cl.size() - 1};
-  mCells.resize(CellsPerRoad);
+  mLightGeometry = std::move(lGeom);
+  mCells.resize(mLightGeometry.getCellsPerRoad());
   mClusters.resize(cl.size());
   mUsedClusters.resize(cl.size());
-  mTracklets.resize(TrackletsPerRoad);
-  mIndexTables.resize(TrackletsPerRoad);
-  mTrackletsLookupTable.resize(CellsPerRoad);
-  mCellsLookupTable.resize(CellsPerRoad - 1);
-  mCellsNeighbours.resize(CellsPerRoad - 1);
+  mTracklets.resize(mLightGeometry.getTrackletsPerRoad());
+  mIndexTables.resize(mLightGeometry.getTrackletsPerRoad());
+  mTrackletsLookupTable.resize(mLightGeometry.getCellsPerRoad());
+  mCellsLookupTable.resize(mLightGeometry.getCellsPerRoad() - 1);
+  mCellsNeighbours.resize(mLightGeometry.getCellsPerRoad() - 1);
 
   mPrimaryVertex = {pVtx[0], pVtx[1], pVtx[2]};
 
@@ -198,8 +196,8 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
         float x = c.xCoordinate - mPrimaryVertex.x;
         float y = c.yCoordinate - mPrimaryVertex.y;
         float phi = math_utils::calculatePhiCoordinate(x, y);
-        int bin = lGeom.getBinIndex(lGeom.getZBinIndex(iLayer, c.zCoordinate),
-                                    lGeom.getPhiBinIndex(phi));
+        int bin = mLightGeometry.getBinIndex(mLightGeometry.getZBinIndex(iLayer, c.zCoordinate),
+                                             mLightGeometry.getPhiBinIndex(phi));
         h.phi = phi;
         h.r = math_utils::calculateRCoordinate(x, y);
         h.bin = bin;
@@ -232,7 +230,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
   }
   mRoads.clear();
   for (int iLayer{0}; iLayer < cl.size(); ++iLayer) {
-    if (iLayer < CellsPerRoad) {
+    if (iLayer < mLightGeometry.getCellsPerRoad()) {
       mCells[iLayer].clear();
       float cellsMemorySize =
         memParam.MemoryOffset +
@@ -244,7 +242,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
         mCells[iLayer].reserve(cellsMemorySize);
       }
     }
-    if (iLayer < CellsPerRoad - 1) {
+    if (iLayer < mLightGeometry.getCellsPerRoad() - 1) {
       mCellsLookupTable[iLayer].clear();
       mCellsLookupTable[iLayer].resize(
         std::max(cl[iLayer + 1].size(), cl[iLayer + 2].size()) +
@@ -257,7 +255,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
   }
 
   for (int iLayer{0}; iLayer < cl.size(); ++iLayer) {
-    if (iLayer < TrackletsPerRoad) {
+    if (iLayer < mLightGeometry.getTrackletsPerRoad()) {
       mTracklets[iLayer].clear();
       float trackletsMemorySize =
         std::max(cl[iLayer].size(), cl[iLayer + 1].size()) +
@@ -267,7 +265,7 @@ void PrimaryVertexContext::initialise(const MemoryParameters& memParam, const st
         mTracklets[iLayer].reserve(trackletsMemorySize);
       }
     }
-    if (iLayer < CellsPerRoad) {
+    if (iLayer < mLightGeometry.getCellsPerRoad()) {
       mTrackletsLookupTable[iLayer].clear();
       mTrackletsLookupTable[iLayer].resize(cl[iLayer + 1].size(), constants::its::UnusedIndex);
     }

@@ -34,7 +34,7 @@ namespace its
 void TrackerTraitsCPU::computeLayerTracklets()
 {
   PrimaryVertexContext* primaryVertexContext = mPrimaryVertexContext;
-  for (int iLayer{0}; iLayer < constants::its::TrackletsPerRoad; ++iLayer) {
+  for (int iLayer{0}; iLayer < primaryVertexContext->getLightGeometry().getTrackletsPerRoad(); ++iLayer) {
     if (primaryVertexContext->getClusters()[iLayer].empty() || primaryVertexContext->getClusters()[iLayer + 1].empty()) {
       return;
     }
@@ -50,12 +50,12 @@ void TrackerTraitsCPU::computeLayerTracklets()
       }
 
       const float tanLambda{(currentCluster.zCoordinate - primaryVertex.z) / currentCluster.rCoordinate};
-      const float directionZIntersection{tanLambda * (constants::its::LayersRCoordinate()[iLayer + 1] -
+      const float directionZIntersection{tanLambda * (primaryVertexContext->getLightGeometry().LayersRCoordinate()[iLayer + 1] -
                                                       currentCluster.rCoordinate) +
                                          currentCluster.zCoordinate};
 
       const int4 selectedBinsRect{getBinsRect(currentCluster, iLayer, directionZIntersection,
-                                              mTrkParams.TrackletMaxDeltaZ[iLayer], mTrkParams.TrackletMaxDeltaPhi)};
+                                              mTrkParams.TrackletMaxDeltaZ[iLayer], mTrkParams.TrackletMaxDeltaPhi, primaryVertexContext)};
 
       if (selectedBinsRect.x == 0 && selectedBinsRect.y == 0 && selectedBinsRect.z == 0 && selectedBinsRect.w == 0) {
         continue;
@@ -69,7 +69,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
 
       for (int iPhiBin{selectedBinsRect.y}, iPhiCount{0}; iPhiCount < phiBinsNum;
            iPhiBin = ++iPhiBin == constants::index_table::PhiBins ? 0 : iPhiBin, iPhiCount++) {
-        const int firstBinIndex{index_table_utils::getBinIndex(selectedBinsRect.x, iPhiBin)};
+        const int firstBinIndex{primaryVertexContext->getLightGeometry().getBinIndex(selectedBinsRect.x, iPhiBin)};
         const int maxBinIndex{firstBinIndex + selectedBinsRect.z - selectedBinsRect.x + 1};
         const int firstRowClusterIndex = primaryVertexContext->getIndexTables()[iLayer][firstBinIndex];
         const int maxRowClusterIndex = primaryVertexContext->getIndexTables()[iLayer][maxBinIndex];

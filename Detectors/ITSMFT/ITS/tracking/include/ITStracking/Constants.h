@@ -85,6 +85,7 @@ constexpr int PionCode{211};
 } // namespace constants
 struct lightGeometry {
  public:
+  lightGeometry() = default;
   lightGeometry(std::vector<float> RCoordinates, std::vector<float> ZCoordinates)
   {
     layers[0] = std::move(RCoordinates);
@@ -116,8 +117,13 @@ struct lightGeometry {
                     constants::index_table::ZBins * constants::index_table::PhiBins - 1);
   }
 
+  std::array<std::vector<float>, 2> getLayers() const { return layers; }
+  int getTrackletsPerRoad() const { return (int)(layers[0].size()) - 1; }
+  int getCellsPerRoad() const { return (int)(layers[0].size()) - 2; }
+
  private:
-  std::array<std::vector<float>, 2> layers;
+  std::array<std::vector<float>, 2>
+    layers;
 };
 } // namespace its
 } // namespace o2

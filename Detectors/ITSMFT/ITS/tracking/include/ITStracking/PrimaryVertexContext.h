@@ -49,6 +49,7 @@ class PrimaryVertexContext
                           const std::array<float, 3>& pv, const int iteration, const o2::its::lightGeometry lGeom);
 
   const float3& getPrimaryVertex() const;
+  lightGeometry getLightGeometry() const;
   std::vector<std::vector<Cluster>>& getClusters();
   std::vector<std::vector<Cell>>& getCells();
   std::vector<std::vector<int>>& getCellsLookupTable();
@@ -69,6 +70,7 @@ class PrimaryVertexContext
 
  protected:
   float3 mPrimaryVertex;
+  lightGeometry mLightGeometry;
   std::array<std::vector<Cluster>, constants::its::LayersNumber> mUnsortedClusters;
   std::vector<std::vector<Cluster>> mClusters;
   std::vector<std::vector<bool>> mUsedClusters;
@@ -85,6 +87,8 @@ class PrimaryVertexContext
 };
 
 inline const float3& PrimaryVertexContext::getPrimaryVertex() const { return mPrimaryVertex; }
+
+inline lightGeometry PrimaryVertexContext::getLightGeometry() const { return mLightGeometry; }
 
 inline std::vector<std::vector<Cluster>>& PrimaryVertexContext::getClusters()
 {

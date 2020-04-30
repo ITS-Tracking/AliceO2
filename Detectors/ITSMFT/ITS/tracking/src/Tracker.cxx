@@ -94,7 +94,7 @@ void Tracker::clustersToTracks(const ROframe& event, o2::its::lightGeometry lGeo
       std::array<float, 3> pV = {event.getPrimaryVertex(iVertex).x, event.getPrimaryVertex(iVertex).y, event.getPrimaryVertex(iVertex).z};
       total += evaluateTask(&Tracker::initialisePrimaryVertexContext, "Context initialisation",
                             timeBenchmarkOutputStream, mMemParams[iteration], event.getClusters(), pV, pass, lGeom);
-      // total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", timeBenchmarkOutputStream);
+      total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", timeBenchmarkOutputStream);
       // total += evaluateTask(&Tracker::computeCells, "Cell finding", timeBenchmarkOutputStream);
       // total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", timeBenchmarkOutputStream, iteration);
       // total += evaluateTask(&Tracker::findRoads, "Road finding", timeBenchmarkOutputStream, iteration);

@@ -50,6 +50,7 @@ class TrackerTraits
 
   GPU_HOST_DEVICE static constexpr int4 getEmptyBinsRect() { return int4{0, 0, 0, 0}; }
   GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi);
+  GPU_DEVICE static const int4 getBinsRect(const Cluster&, const int, const float, float maxdeltaz, float maxdeltaphi, PrimaryVertexContext*);
 
   void SetRecoChain(o2::gpu::GPUChainITS* chain, FuncRunITSTrackFit_t&& funcRunITSTrackFit)
   {
@@ -96,6 +97,27 @@ inline GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCl
               gpu::GPUCommonMath::Min(constants::index_table::ZBins - 1, index_table_utils::getZBinIndex(layerIndex + 1, zRangeMax)),
               index_table_utils::getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMax))};
 }
+
+inline GPU_DEVICE const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, const int layerIndex,
+                                                        const float directionZIntersection, float maxdeltaz, float maxdeltaphi, PrimaryVertexContext* pvc)
+{
+  const float zRangeMin = directionZIntersection - 2 * maxdeltaz;
+  const float phiRangeMin = currentCluster.phiCoordinate - maxdeltaphi;
+  const float zRangeMax = directionZIntersection + 2 * maxdeltaz;
+  const float phiRangeMax = currentCluster.phiCoordinate + maxdeltaphi;
+
+  if (zRangeMax < -pvc->getLightGeometry().LayersZCoordinate()[layerIndex + 1] ||
+      zRangeMin > pvc->getLightGeometry().LayersZCoordinate()[layerIndex + 1] || zRangeMin > zRangeMax) {
+
+    return getEmptyBinsRect();
+  }
+
+  return int4{gpu::GPUCommonMath::Max(0, pvc->getLightGeometry().getZBinIndex(layerIndex + 1, zRangeMin)),
+              pvc->getLightGeometry().getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMin)),
+              gpu::GPUCommonMath::Min(constants::index_table::ZBins - 1, pvc->getLightGeometry().getZBinIndex(layerIndex + 1, zRangeMax)),
+              pvc->getLightGeometry().getPhiBinIndex(math_utils::getNormalizedPhiCoordinate(phiRangeMax))};
+}
+
 } // namespace its
 } // namespace o2
 
