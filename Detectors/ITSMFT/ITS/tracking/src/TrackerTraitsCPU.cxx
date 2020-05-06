@@ -113,7 +113,7 @@ void TrackerTraitsCPU::computeLayerTracklets()
 void TrackerTraitsCPU::computeLayerCells()
 {
   PrimaryVertexContext* primaryVertexContext = mPrimaryVertexContext;
-  for (int iLayer{0}; iLayer < constants::its::CellsPerRoad; ++iLayer) {
+  for (int iLayer{0}; iLayer < primaryVertexContext->getLightGeometry().getCellsPerRoad(); ++iLayer) {
 
     if (primaryVertexContext->getTracklets()[iLayer + 1].empty() ||
         primaryVertexContext->getTracklets()[iLayer].empty()) {
@@ -132,7 +132,6 @@ void TrackerTraitsCPU::computeLayerCells()
         primaryVertexContext->getTrackletsLookupTable()[iLayer][nextLayerClusterIndex]};
 
       if (nextLayerFirstTrackletIndex == constants::its::UnusedIndex) {
-
         continue;
       }
 
@@ -228,6 +227,9 @@ void TrackerTraitsCPU::computeLayerCells()
         }
       }
     }
+  }
+  for (int i{0}; i < primaryVertexContext->getLightGeometry().getCellsPerRoad(); ++i) {
+    std::cout << "Layers:" << i << "-" << i + 1 << "-" << i + 2 << " found " << primaryVertexContext->getCells()[i].size() << " cells." << std::endl;
   }
 }
 
