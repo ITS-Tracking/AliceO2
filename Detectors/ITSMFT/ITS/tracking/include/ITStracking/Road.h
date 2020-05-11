@@ -44,7 +44,7 @@ class Road final
   void addCell(int, int);
 
  private:
-  int mCellIds[constants::its::CellsPerRoad];
+  int mCellIds[15]; // <----- HACK: should be: constants::its::CellsPerRoad but I don't want to sort out GPU compatibility
   int mRoadSize;
   int mLabel;
   bool mIsFakeRoad;

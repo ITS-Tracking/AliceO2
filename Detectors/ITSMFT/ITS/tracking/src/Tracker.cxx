@@ -266,35 +266,35 @@ void Tracker::findTracks(const ROframe& event)
       if (cellIndex == constants::its::UnusedIndex) {
         continue;
       } else {
-        std::cout << iCell << " " << clusters.size() << " " << clusters[iCell] = mPrimaryVertexContext->getCells()[iCell][cellIndex] << std::endl;
+        // std::cout << iCell << " " << clusters.size() << " " << mPrimaryVertexContext->getCells()[iCell].size() << " " << cellIndex << std::endl;
         clusters[iCell] = mPrimaryVertexContext->getCells()[iCell][cellIndex].getFirstClusterIndex();
-        //     clusters[iCell + 1] = mPrimaryVertexContext->getCells()[iCell][cellIndex].getSecondClusterIndex();
-        //     clusters[iCell + 2] = mPrimaryVertexContext->getCells()[iCell][cellIndex].getThirdClusterIndex();
-        //     assert(clusters[iCell] != constants::its::UnusedIndex &&
-        //            clusters[iCell + 1] != constants::its::UnusedIndex &&
-        //            clusters[iCell + 2] != constants::its::UnusedIndex);
-        //     lastCellLevel = iCell;
+        clusters[iCell + 1] = mPrimaryVertexContext->getCells()[iCell][cellIndex].getSecondClusterIndex();
+        clusters[iCell + 2] = mPrimaryVertexContext->getCells()[iCell][cellIndex].getThirdClusterIndex();
+        assert(clusters[iCell] != constants::its::UnusedIndex &&
+               clusters[iCell + 1] != constants::its::UnusedIndex &&
+               clusters[iCell + 2] != constants::its::UnusedIndex);
+        lastCellLevel = iCell;
         CA_DEBUGGER(nClusters++);
       }
     }
 
-    // assert(nClusters >= mTrkParams[0].MinTrackLength);
-    // CA_DEBUGGER(roadCounters[nClusters - 4]++);
+    assert(nClusters >= mTrkParams[0].MinTrackLength);
+    CA_DEBUGGER(roadCounters[nClusters - 4]++);
 
-    // if (lastCellLevel == constants::its::UnusedIndex)
-    //   continue;
+    if (lastCellLevel == constants::its::UnusedIndex)
+      continue;
 
-    // /// From primary vertex context index to event index (== the one used as input of the tracking code)
-    // for (int iC{0}; iC < clusters.size(); iC++) {
-    //   if (clusters[iC] != constants::its::UnusedIndex) {
-    //     clusters[iC] = mPrimaryVertexContext->getClusters()[iC][clusters[iC]].clusterId;
-    //   }
-    // }
-    // /// Track seed preparation. Clusters are numbered progressively from the outermost to the innermost.
-    // const auto& cluster1_glo = event.getClustersOnLayer(lastCellLevel + 2).at(clusters[lastCellLevel + 2]);
-    // const auto& cluster2_glo = event.getClustersOnLayer(lastCellLevel + 1).at(clusters[lastCellLevel + 1]);
-    // const auto& cluster3_glo = event.getClustersOnLayer(lastCellLevel).at(clusters[lastCellLevel]);
-
+    /// From primary vertex context index to event index (== the one used as input of the tracking code)
+    for (int iC{0}; iC < clusters.size(); iC++) {
+      if (clusters[iC] != constants::its::UnusedIndex) {
+        clusters[iC] = mPrimaryVertexContext->getClusters()[iC][clusters[iC]].clusterId;
+      }
+    }
+    /// Track seed preparation. Clusters are numbered progressively from the outermost to the innermost.
+    const auto& cluster1_glo = event.getClustersOnLayer(lastCellLevel + 2).at(clusters[lastCellLevel + 2]);
+    const auto& cluster2_glo = event.getClustersOnLayer(lastCellLevel + 1).at(clusters[lastCellLevel + 1]);
+    const auto& cluster3_glo = event.getClustersOnLayer(lastCellLevel).at(clusters[lastCellLevel]);
+    std::cout << "trackinginfido: " << lastCellLevel << " " << event.getTrackingFrameInfoOnLayer(lastCellLevel).size() << std::endl;
     // const auto& cluster3_tf = event.getTrackingFrameInfoOnLayer(lastCellLevel).at(clusters[lastCellLevel]);
 
     /// FIXME!
