@@ -281,7 +281,9 @@ void Tracker::findTracks(const ROframe& event)
     CA_DEBUGGER(backpropagatedCounters[nClusters - 4]++);
     temporaryTrack.getParamOut() = temporaryTrack;
     temporaryTrack.resetCovariance();
-    fitSuccess = fitTrack(event, temporaryTrack, constants::its::LayersNumber - 1, -1, -1);
+    std::array<std::array<float, o2::track::kCovMatSize>, constants::its::LayersNumber> covMatrices;
+    std::array<o2::track::TrackParCov, constants::its::LayersNumber> intermediateTracks;
+    fitSuccess = fitTrack(event, temporaryTrack, constants::its::LayersNumber - 1, -1, -1, intermediateTracks, covMatrices);
     if (!fitSuccess)
       continue;
     CA_DEBUGGER(refitCounters[nClusters - 4]++);
@@ -414,214 +416,265 @@ bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int 
   return true;
 }
 
-void Tracker::traverseCellsTree(const int currentCellId, const int currentLayerId)
+bool Tracker::fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step,
+                       std::array<o2::track::TrackParCov, constants::its::LayersNumber>& intermediateTracks,
+                       std::array<std::array<float, o2::track::kCovMatSize>, constants::its::LayersNumber>& covMatrices)
 {
-  Cell& currentCell{mPrimaryVertexContext->getCells()[currentLayerId][currentCellId]};
-  const int currentCellLevel = currentCell.getLevel();
-
-  mPrimaryVertexContext->getRoads().back().addCell(currentLayerId, currentCellId);
-
-  if (currentLayerId > 0) {
-
-    const int cellNeighboursNum{static_cast<int>(
-      mPrimaryVertexContext->getCellsNeighbours()[currentLayerId - 1][currentCellId].size())};
-    bool isFirstValidNeighbour = true;
-
-    for (int iNeighbourCell{0}; iNeighbourCell < cellNeighboursNum; ++iNeighbourCell) {
-
-      const int neighbourCellId =
-        mPrimaryVertexContext->getCellsNeighbours()[currentLayerId - 1][currentCellId][iNeighbourCell];
-      const Cell& neighbourCell = mPrimaryVertexContext->getCells()[currentLayerId - 1][neighbourCellId];
-
-      if (currentCellLevel - 1 != neighbourCell.getLevel()) {
-        continue;
-      }
-
-      if (isFirstValidNeighbour) {
-        isFirstValidNeighbour = false;
-      } else {
-        mPrimaryVertexContext->getRoads().push_back(mPrimaryVertexContext->getRoads().back());
-      }
-
-      traverseCellsTree(neighbourCellId, currentLayerId - 1);
+  track.setChi2(0);
+  for (int iLayer{start}; iLayer != end; iLayer += step) {
+    if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+      continue;
     }
-  }
+    const TrackingFrameInfo& trackingHit = event.getTrackingFrameInfoOnLayer(iLayer).at(track.getClusterIndex(iLayer));
 
-  // TODO: crosscheck for short track iterations
-  // currentCell.setLevel(0);
+    if (!track.rotate(trackingHit.alphaTrackingFrame))
+      return false;
+
+    if (!track.propagateTo(trackingHit.xTrackingFrame, getBz()))
+      return false;
+
+    track.setChi2(track.getChi2() +
+                  track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
+    if (!track.TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame))
+      return false;
+
+    const float xx0 = (iLayer > 2) ? 0.008f : 0.003f; // Rough layer thickness
+    constexpr float radiationLength = 9.36f;          // Radiation length of Si [cm]
+    constexpr float density = 2.33f;                  // Density of Si [g/cm^3]
+    if (!track.correctForMaterial(xx0, xx0 * radiationLength * density, true))
+      return false;
+    // Fill tmpTracks and covMat array to be used in smoother
+    intermediateTracks[iLayer] = track;
+    std::memcpy(covMatrices[iLayer].begin(), track.getCov(), o2::track::kCovMatSize * sizeof(float));
+  }
+  return true;
 }
 
-void Tracker::computeRoadsMClabels(const ROframe& event)
+bool Tracker::smoothTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step,
+                          std::array<o2::track::TrackParCov, constants::its::LayersNumber>& intermediateTracks,
+                          std::array<std::array<float, o2::track::kCovMatSize>, constants::its::LayersNumber>& covMatrices)
 {
-  /// Moore's Voting Algorithm
-  if (!event.hasMCinformation()) {
-    return;
+  track.setChi2(0);
+  for (int iLayer{start}; iLayer != end; iLayer += step) {
+    if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+      continue;
+    }
+    const TrackingFrameInfo& trackingHit = event.getTrackingFrameInfoOnLayer(iLayer).at(track.getClusterIndex(iLayer));
+
+    if (!track.rotate(trackingHit.alphaTrackingFrame))
+      return false;
+
+    return true;
   }
 
-  mPrimaryVertexContext->initialiseRoadLabels();
+  void Tracker::traverseCellsTree(const int currentCellId, const int currentLayerId)
+  {
+    Cell& currentCell{mPrimaryVertexContext->getCells()[currentLayerId][currentCellId]};
+    const int currentCellLevel = currentCell.getLevel();
 
-  int roadsNum{static_cast<int>(mPrimaryVertexContext->getRoads().size())};
+    mPrimaryVertexContext->getRoads().back().addCell(currentLayerId, currentCellId);
 
-  for (int iRoad{0}; iRoad < roadsNum; ++iRoad) {
+    if (currentLayerId > 0) {
 
-    Road& currentRoad{mPrimaryVertexContext->getRoads()[iRoad]};
-    MCCompLabel maxOccurrencesValue{constants::its::UnusedIndex, constants::its::UnusedIndex,
-                                    constants::its::UnusedIndex, false};
-    int count{0};
-    bool isFakeRoad{false};
-    bool isFirstRoadCell{true};
+      const int cellNeighboursNum{static_cast<int>(
+        mPrimaryVertexContext->getCellsNeighbours()[currentLayerId - 1][currentCellId].size())};
+      bool isFirstValidNeighbour = true;
 
-    for (int iCell{0}; iCell < constants::its::CellsPerRoad; ++iCell) {
-      const int currentCellIndex{currentRoad[iCell]};
+      for (int iNeighbourCell{0}; iNeighbourCell < cellNeighboursNum; ++iNeighbourCell) {
 
-      if (currentCellIndex == constants::its::UnusedIndex) {
-        if (isFirstRoadCell) {
+        const int neighbourCellId =
+          mPrimaryVertexContext->getCellsNeighbours()[currentLayerId - 1][currentCellId][iNeighbourCell];
+        const Cell& neighbourCell = mPrimaryVertexContext->getCells()[currentLayerId - 1][neighbourCellId];
+
+        if (currentCellLevel - 1 != neighbourCell.getLevel()) {
           continue;
-        } else {
-          break;
         }
+
+        if (isFirstValidNeighbour) {
+          isFirstValidNeighbour = false;
+        } else {
+          mPrimaryVertexContext->getRoads().push_back(mPrimaryVertexContext->getRoads().back());
+        }
+
+        traverseCellsTree(neighbourCellId, currentLayerId - 1);
       }
+    }
 
-      const Cell& currentCell{mPrimaryVertexContext->getCells()[iCell][currentCellIndex]};
+    // TODO: crosscheck for short track iterations
+    // currentCell.setLevel(0);
+  }
 
-      if (isFirstRoadCell) {
+  void Tracker::computeRoadsMClabels(const ROframe& event)
+  {
+    /// Moore's Voting Algorithm
+    if (!event.hasMCinformation()) {
+      return;
+    }
 
-        const int cl0index{mPrimaryVertexContext->getClusters()[iCell][currentCell.getFirstClusterIndex()].clusterId};
-        auto& cl0labs{event.getClusterLabels(iCell, cl0index)};
-        maxOccurrencesValue = cl0labs;
-        count = 1;
+    mPrimaryVertexContext->initialiseRoadLabels();
 
-        const int cl1index{mPrimaryVertexContext->getClusters()[iCell + 1][currentCell.getSecondClusterIndex()].clusterId};
-        auto& cl1labs{event.getClusterLabels(iCell + 1, cl1index)};
-        const int secondMonteCarlo{cl1labs.getTrackID()};
+    int roadsNum{static_cast<int>(mPrimaryVertexContext->getRoads().size())};
 
-        if (secondMonteCarlo == maxOccurrencesValue) {
+    for (int iRoad{0}; iRoad < roadsNum; ++iRoad) {
+
+      Road& currentRoad{mPrimaryVertexContext->getRoads()[iRoad]};
+      MCCompLabel maxOccurrencesValue{constants::its::UnusedIndex, constants::its::UnusedIndex,
+                                      constants::its::UnusedIndex, false};
+      int count{0};
+      bool isFakeRoad{false};
+      bool isFirstRoadCell{true};
+
+      for (int iCell{0}; iCell < constants::its::CellsPerRoad; ++iCell) {
+        const int currentCellIndex{currentRoad[iCell]};
+
+        if (currentCellIndex == constants::its::UnusedIndex) {
+          if (isFirstRoadCell) {
+            continue;
+          } else {
+            break;
+          }
+        }
+
+        const Cell& currentCell{mPrimaryVertexContext->getCells()[iCell][currentCellIndex]};
+
+        if (isFirstRoadCell) {
+
+          const int cl0index{mPrimaryVertexContext->getClusters()[iCell][currentCell.getFirstClusterIndex()].clusterId};
+          auto& cl0labs{event.getClusterLabels(iCell, cl0index)};
+          maxOccurrencesValue = cl0labs;
+          count = 1;
+
+          const int cl1index{mPrimaryVertexContext->getClusters()[iCell + 1][currentCell.getSecondClusterIndex()].clusterId};
+          auto& cl1labs{event.getClusterLabels(iCell + 1, cl1index)};
+          const int secondMonteCarlo{cl1labs.getTrackID()};
+
+          if (secondMonteCarlo == maxOccurrencesValue) {
+            ++count;
+          } else {
+            maxOccurrencesValue = secondMonteCarlo;
+            count = 1;
+            isFakeRoad = true;
+          }
+
+          isFirstRoadCell = false;
+        }
+
+        const int cl2index{mPrimaryVertexContext->getClusters()[iCell + 2][currentCell.getThirdClusterIndex()].clusterId};
+        auto& cl2labs{event.getClusterLabels(iCell + 2, cl2index)};
+        const int currentMonteCarlo = {cl2labs.getTrackID()};
+
+        if (currentMonteCarlo == maxOccurrencesValue) {
           ++count;
         } else {
-          maxOccurrencesValue = secondMonteCarlo;
-          count = 1;
+          --count;
           isFakeRoad = true;
         }
 
-        isFirstRoadCell = false;
-      }
-
-      const int cl2index{mPrimaryVertexContext->getClusters()[iCell + 2][currentCell.getThirdClusterIndex()].clusterId};
-      auto& cl2labs{event.getClusterLabels(iCell + 2, cl2index)};
-      const int currentMonteCarlo = {cl2labs.getTrackID()};
-
-      if (currentMonteCarlo == maxOccurrencesValue) {
-        ++count;
-      } else {
-        --count;
-        isFakeRoad = true;
-      }
-
-      if (count == 0) {
-        maxOccurrencesValue = currentMonteCarlo;
-        count = 1;
-      }
-    }
-
-    mPrimaryVertexContext->setRoadLabel(iRoad, maxOccurrencesValue, isFakeRoad);
-  }
-}
-
-void Tracker::computeTracksMClabels(const ROframe& event)
-{
-  /// Moore's Voting Algorithm
-  if (!event.hasMCinformation()) {
-    return;
-  }
-
-  int tracksNum{static_cast<int>(mTracks.size())};
-
-  for (auto& track : mTracks) {
-
-    MCCompLabel maxOccurrencesValue{constants::its::UnusedIndex, constants::its::UnusedIndex,
-                                    constants::its::UnusedIndex, false};
-    int count{0};
-    bool isFakeTrack{false};
-
-    for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
-      const int index = track.getClusterIndex(iCluster);
-      if (index == constants::its::UnusedIndex) {
-        continue;
-      }
-
-      const MCCompLabel& currentLabel = event.getClusterLabels(iCluster, index);
-      if (currentLabel == maxOccurrencesValue) {
-        ++count;
-      } else {
-        if (count != 0) { // only in the first iteration count can be 0 at this point
-          isFakeTrack = true;
-          --count;
-        }
         if (count == 0) {
-          maxOccurrencesValue = currentLabel;
+          maxOccurrencesValue = currentMonteCarlo;
           count = 1;
         }
       }
-      track.setExternalClusterIndex(iCluster, event.getClusterExternalIndex(iCluster, index));
-    }
 
-    if (isFakeTrack) {
-      maxOccurrencesValue.setFakeFlag();
+      mPrimaryVertexContext->setRoadLabel(iRoad, maxOccurrencesValue, isFakeRoad);
     }
-    mTrackLabels.addElement(mTrackLabels.getIndexedSize(), maxOccurrencesValue);
   }
-}
 
-void Tracker::rectifyClusterIndices(const ROframe& event)
-{
-  int tracksNum{static_cast<int>(mTracks.size())};
-  for (auto& track : mTracks) {
-    for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
-      const int index = track.getClusterIndex(iCluster);
-      if (index != constants::its::UnusedIndex) {
+  void Tracker::computeTracksMClabels(const ROframe& event)
+  {
+    /// Moore's Voting Algorithm
+    if (!event.hasMCinformation()) {
+      return;
+    }
+
+    int tracksNum{static_cast<int>(mTracks.size())};
+
+    for (auto& track : mTracks) {
+
+      MCCompLabel maxOccurrencesValue{constants::its::UnusedIndex, constants::its::UnusedIndex,
+                                      constants::its::UnusedIndex, false};
+      int count{0};
+      bool isFakeTrack{false};
+
+      for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
+        const int index = track.getClusterIndex(iCluster);
+        if (index == constants::its::UnusedIndex) {
+          continue;
+        }
+
+        const MCCompLabel& currentLabel = event.getClusterLabels(iCluster, index);
+        if (currentLabel == maxOccurrencesValue) {
+          ++count;
+        } else {
+          if (count != 0) { // only in the first iteration count can be 0 at this point
+            isFakeTrack = true;
+            --count;
+          }
+          if (count == 0) {
+            maxOccurrencesValue = currentLabel;
+            count = 1;
+          }
+        }
         track.setExternalClusterIndex(iCluster, event.getClusterExternalIndex(iCluster, index));
+      }
+
+      if (isFakeTrack) {
+        maxOccurrencesValue.setFakeFlag();
+      }
+      mTrackLabels.addElement(mTrackLabels.getIndexedSize(), maxOccurrencesValue);
+    }
+  }
+
+  void Tracker::rectifyClusterIndices(const ROframe& event)
+  {
+    int tracksNum{static_cast<int>(mTracks.size())};
+    for (auto& track : mTracks) {
+      for (int iCluster = 0; iCluster < TrackITSExt::MaxClusters; ++iCluster) {
+        const int index = track.getClusterIndex(iCluster);
+        if (index != constants::its::UnusedIndex) {
+          track.setExternalClusterIndex(iCluster, event.getClusterExternalIndex(iCluster, index));
+        }
       }
     }
   }
-}
 
-/// Clusters are given from outside inward (cluster1 is the outermost). The innermost cluster is given in the tracking
-/// frame coordinates
-/// whereas the others are referred to the global frame. This function is almost a clone of CookSeed, adapted to return
-/// a TrackParCov
-track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2,
-                                           const Cluster& cluster3, const TrackingFrameInfo& tf3)
-{
-  const float ca = std::cos(tf3.alphaTrackingFrame), sa = std::sin(tf3.alphaTrackingFrame);
-  const float x1 = cluster1.xCoordinate * ca + cluster1.yCoordinate * sa;
-  const float y1 = -cluster1.xCoordinate * sa + cluster1.yCoordinate * ca;
-  const float z1 = cluster1.zCoordinate;
-  const float x2 = cluster2.xCoordinate * ca + cluster2.yCoordinate * sa;
-  const float y2 = -cluster2.xCoordinate * sa + cluster2.yCoordinate * ca;
-  const float z2 = cluster2.zCoordinate;
-  const float x3 = tf3.xTrackingFrame;
-  const float y3 = tf3.positionTrackingFrame[0];
-  const float z3 = tf3.positionTrackingFrame[1];
+  /// Clusters are given from outside inward (cluster1 is the outermost). The innermost cluster is given in the tracking
+  /// frame coordinates
+  /// whereas the others are referred to the global frame. This function is almost a clone of CookSeed, adapted to return
+  /// a TrackParCov
+  track::TrackParCov Tracker::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2,
+                                             const Cluster& cluster3, const TrackingFrameInfo& tf3)
+  {
+    const float ca = std::cos(tf3.alphaTrackingFrame), sa = std::sin(tf3.alphaTrackingFrame);
+    const float x1 = cluster1.xCoordinate * ca + cluster1.yCoordinate * sa;
+    const float y1 = -cluster1.xCoordinate * sa + cluster1.yCoordinate * ca;
+    const float z1 = cluster1.zCoordinate;
+    const float x2 = cluster2.xCoordinate * ca + cluster2.yCoordinate * sa;
+    const float y2 = -cluster2.xCoordinate * sa + cluster2.yCoordinate * ca;
+    const float z2 = cluster2.zCoordinate;
+    const float x3 = tf3.xTrackingFrame;
+    const float y3 = tf3.positionTrackingFrame[0];
+    const float z3 = tf3.positionTrackingFrame[1];
 
-  const float crv = math_utils::computeCurvature(x1, y1, x2, y2, x3, y3);
-  const float x0 = math_utils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
-  const float tgl12 = math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
-  const float tgl23 = math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
+    const float crv = math_utils::computeCurvature(x1, y1, x2, y2, x3, y3);
+    const float x0 = math_utils::computeCurvatureCentreX(x1, y1, x2, y2, x3, y3);
+    const float tgl12 = math_utils::computeTanDipAngle(x1, y1, x2, y2, z1, z2);
+    const float tgl23 = math_utils::computeTanDipAngle(x2, y2, x3, y3, z2, z3);
 
-  const float fy = 1. / (cluster2.rCoordinate - cluster3.rCoordinate);
-  const float& tz = fy;
-  const float cy = (math_utils::computeCurvature(x1, y1, x2, y2 + constants::its::Resolution, x3, y3) - crv) /
-                   (constants::its::Resolution * getBz() * o2::constants::math::B2C) *
-                   20.f; // FIXME: MS contribution to the cov[14] (*20 added)
-  constexpr float s2 = constants::its::Resolution * constants::its::Resolution;
+    const float fy = 1. / (cluster2.rCoordinate - cluster3.rCoordinate);
+    const float& tz = fy;
+    const float cy = (math_utils::computeCurvature(x1, y1, x2, y2 + constants::its::Resolution, x3, y3) - crv) /
+                     (constants::its::Resolution * getBz() * o2::constants::math::B2C) *
+                     20.f; // FIXME: MS contribution to the cov[14] (*20 added)
+    constexpr float s2 = constants::its::Resolution * constants::its::Resolution;
 
-  return track::TrackParCov(tf3.xTrackingFrame, tf3.alphaTrackingFrame,
-                            {y3, z3, crv * (x3 - x0), 0.5f * (tgl12 + tgl23),
-                             std::abs(getBz()) < o2::constants::math::Almost0 ? o2::constants::math::Almost0
-                                                                              : crv / (getBz() * o2::constants::math::B2C)},
-                            {s2, 0.f, s2, s2 * fy, 0.f, s2 * fy * fy, 0.f, s2 * tz, 0.f, s2 * tz * tz, s2 * cy, 0.f,
-                             s2 * fy * cy, 0.f, s2 * cy * cy});
-}
+    return track::TrackParCov(tf3.xTrackingFrame, tf3.alphaTrackingFrame,
+                              {y3, z3, crv * (x3 - x0), 0.5f * (tgl12 + tgl23),
+                               std::abs(getBz()) < o2::constants::math::Almost0 ? o2::constants::math::Almost0
+                                                                                : crv / (getBz() * o2::constants::math::B2C)},
+                              {s2, 0.f, s2, s2 * fy, 0.f, s2 * fy * fy, 0.f, s2 * tz, 0.f, s2 * tz * tz, s2 * cy, 0.f,
+                               s2 * fy * cy, 0.f, s2 * cy * cy});
+  }
 
 } // namespace its
-} // namespace o2
+} // namespace its

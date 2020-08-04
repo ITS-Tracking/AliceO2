@@ -79,6 +79,12 @@ class Tracker
   void findRoads(int& iteration);
   void findTracks(const ROframe& ev);
   bool fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step);
+  bool fitTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step,
+                std::array<o2::track::TrackParCov, constants::its::LayersNumber>& intermediateTracks,
+                std::array<std::array<float, o2::track::kCovMatSize>, constants::its::LayersNumber>& covMatrices);
+  bool smoothTrack(const ROframe& event, TrackITSExt& track, int start, int end, int step,
+                   std::array<o2::track::TrackParCov, constants::its::LayersNumber>& intermediateTracks,
+                   std::array<std::array<float, o2::track::kCovMatSize>, constants::its::LayersNumber>& covMatrices);
   void traverseCellsTree(const int, const int);
   void computeRoadsMClabels(const ROframe&);
   void computeTracksMClabels(const ROframe&);
